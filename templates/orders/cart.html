@@ -2,18 +2,26 @@
 {% block title %}Cart - Hango{% endblock %}
 {% block content %}
 <h1 class="title">Your Cart</h1>
+<p class="subtitle">Meals are free for students.</p>
 {% if lines %}
 <table class="table is-fullwidth">
-  <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
+  <thead>
+    <tr><th>Item</th><th style="width: 120px;">Qty</th><th></th></tr>
+  </thead>
   <tbody>
   {% for l in lines %}
-    <tr><td>{{ l.item.name }}</td><td>{{ l.qty }}</td><td>{{ l.unit_display }}</td><td>{{ l.line_display }}</td>
-      <td><a class="button is-small is-light" href="{% url 'orders:remove' l.item.id %}">Remove</a></td></tr>
+    <tr>
+      <td>{{ l.item.name }}</td>
+      <td>{{ l.qty }}</td>
+      <td class="has-text-right">
+        <a class="button is-small is-light" href="{% url 'orders:remove' l.item.id %}">Remove</a>
+      </td>
+    </tr>
   {% endfor %}
   </tbody>
 </table>
-<p class="is-size-5">Subtotal: {{ subtotal_display }}</p>
 <a class="button is-primary" href="{% url 'orders:checkout' %}">Checkout</a>
-{% else %}<p>Your cart is empty.</p>{% endif %}
+{% else %}
+<p>Your cart is empty.</p>
+{% endif %}
 {% endblock %}
-

@@ -1,1 +1,5 @@
-[{"model":"menu.item","pk":1,"fields":{"name":"Veggie Sandwich","description":"Whole grain, avocado, tomato.","price_cents":1250,"is_active":true}},{"model":"menu.item","pk":2,"fields":{"name":"Chicken Wrap","description":"Grilled chicken, lettuce, yogurt sauce.","price_cents":1400,"is_active":true}},{"model":"menu.item","pk":3,"fields":{"name":"Pasta Salad","description":"Penne with veggies and herbs.","price_cents":1100,"is_active":true}}]
+[
+  { "model": "menu.item", "pk": 1, "fields": { "name": "Veggie Sandwich", "description": "Whole grain, avocado, tomato.", "is_active": true } },
+  { "model": "menu.item", "pk": 2, "fields": { "name": "Chicken Wrap", "description": "Grilled chicken, lettuce, yogurt sauce.", "is_active": true } },
+  { "model": "menu.item", "pk": 3, "fields": { "name": "Pasta Salad", "description": "Penne with veggies and herbs.", "is_active": true } }
+]
