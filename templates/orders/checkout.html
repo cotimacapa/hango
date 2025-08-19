@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Checkout - Hango{% endblock %}
+{% block content %}
+<h1 class="title">Checkout</h1>
+<form method="post" class="box">
+  {% csrf_token %}
+  <div class="field"><label class="label">Pickup slot (optional)</label>
+    <div class="control"><input type="datetime-local" name="pickup_slot" class="input"></div>
+    <p class="help">If blank, pick up ASAP.</p></div>
+  <div class="field"><label class="label">Notes</label>
+    <div class="control"><textarea name="notes" rows="3" class="textarea" placeholder="Allergies, no onions, etc."></textarea></div></div>
+  <button class="button is-primary">Place Order</button>
+</form>
+{% endblock %}
+

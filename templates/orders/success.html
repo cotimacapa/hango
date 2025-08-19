@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Order placed - Hango{% endblock %}
+{% block content %}
+<article class="message is-success"><div class="message-header"><p>Order placed</p></div>
+<div class="message-body">
+<p>Your order <strong>#{{ order.id }}</strong> has been created and is currently <strong>{{ order.get_status_display }}</strong>.</p>
+<p>Check <a href="/admin/">Admin</a> for details (staff only).</p>
+</div></article>
+<a class="button" href="/">Back to menu</a>
+{% endblock %}
+

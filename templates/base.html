@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Hango{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+<nav class="navbar is-primary" role="navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="/">🍽️ Hango </a>
+    <a role="button" class="navbar-burger" data-target="navMenu"><span></span><span></span><span></span></a>
+  </div>
+  <div id="navMenu" class="navbar-menu">
+    <div class="navbar-start"><a class="navbar-item" href="/">Menu</a></div>
+    <div class="navbar-end">
+      <a class="navbar-item" href="/orders/cart/">Cart ({{ cart_count }})</a>
+      {% if request.user.is_authenticated %}
+        <div class="navbar-item">Hello, {{ request.user.first_name|default:request.user.username }}</div>
+        <a class="navbar-item" href="/admin/">Admin</a>
+      {% else %}
+        <a class="navbar-item" href="/admin/login/?next=/">Login</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+<section class="section"><div class="container">
+  {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</div></section>
+<script>
+  document.addEventListener('DOMContentLoaded',()=>{
+    const b=document.querySelector('.navbar-burger'); const m=document.getElementById('navMenu');
+    if(b&&m){b.addEventListener('click',()=>{b.classList.toggle('is-active'); m.classList.toggle('is-active');});}
+  });
+</script>
+</body>
+</html>
+

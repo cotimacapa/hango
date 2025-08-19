@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Menu - Hango{% endblock %}
+{% block content %}
+<h1 class="title">Today’s Menu</h1>
+<div class="columns is-multiline">
+  {% for i in items %}
+  <div class="column is-4"><div class="card"><div class="card-content">
+    <p class="title is-5">{{ i.name }}</p>
+    <p class="subtitle is-6">{{ i.price_display }}</p>
+    {% if i.description %}<p>{{ i.description }}</p>{% endif %}
+    <div class="mt-3">
+      <a class="button is-link" href="{% url 'menu:add_to_cart' i.id %}">Add to cart</a>
+      <a class="button" href="{% url 'orders:add' i.id %}">Add & view cart</a>
+    </div>
+  </div></div></div>
+  {% empty %}<p>No items yet.</p>{% endfor %}
+</div>
+{% endblock %}
+
