@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Kitchen Board - Hango{% endblock %}
+{% block content %}
+
+<!-- Auto-refresh every 10s -->
+<script>setTimeout(function(){ location.reload(); }, 10000);</script>
+
+<h1 class="title">Kitchen Board</h1>
+<p class="subtitle">Today’s orders. Auto-refreshing every 10 seconds.</p>
+
+<div class="box">
+  {% if orders %}
+  <table class="table is-fullwidth">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>When</th>
+        <th>Student</th>
+        <th>Items</th>
+        <th>Pickup</th>
+        <th>Notes</th>
+        <th>Status</th>
+        <th class="has-text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td>#{{ o.id }}</td>
+        <td title="{{ o.created_at }}">{{ o.created_at|timesince }} ago</td>
+        <td>{{ o.user }}</td>
+        <td>
+          {% for li in o.lines.all %}
+            <span class="tag is-light mb-1">{{ li.qty }}× {{ li.item.name }}</span>
+          {% empty %}-{% endfor %}
+        </td>
+        <td>{% if o.pickup_slot %}{{ o.pickup_slot|date:"H:i" }}{% else %}-{% endif %}</td>
+        <td>{{ o.notes|default:"" }}</td>
+        <td>
+          <span class="tag
+            {% if o.status == 'pending' %}is-warning{% elif o.status == 'preparing' %}is-info
+            {% elif o.status == 'ready' %}is-primary{% elif o.status == 'picked_up' %}is-success
+            {% elif o.status == 'canceled' %}is-danger{% else %}is-light{% endif %}">
+            {{ o.get_status_display }}
+          </span>
+        </td>
+        <td class="has-text-right">
+          <div class="buttons are-small is-right">
+            {% for to,label in ACTIONS.o.status %}
+            <form method="post" action="{% url 'orders:update_status' o.id to %}" style="display:inline;">
+              {% csrf_token %}
+              <button class="button
+                {% if to == 'ready' %}is-primary{% elif to == 'preparing' %}is-info
+                {% elif to == 'picked_up' %}is-success{% elif to == 'canceled' %}is-danger
+                {% else %}is-light{% endif %}">
+                {{ label }}
+              </button>
+            </form>
+            {% empty %}<span class="has-text-grey">—</span>{% endfor %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No orders today.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -72,3 +72,14 @@ a { color: var(--primary); }
 .theme-toggle:hover { opacity: 1; }
 .theme-toggle svg { display: block; }
 
+/* Make the POST-logout button look like a plain navbar link */
+.logout-form { padding: 0; }
+.logout-form .logout-button {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.logout-form .logout-button:hover { text-decoration: underline; }
