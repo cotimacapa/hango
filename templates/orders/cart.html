@@ -2,7 +2,7 @@
 {% block title %}Cart - Hango{% endblock %}
 {% block content %}
 <h1 class="title">Your Cart</h1>
-<p class="subtitle">Meals are free for students.</p>
+<p class="subtitle">Meals are free; limits may apply per category each day.</p>
 {% if lines %}
 <table class="table is-fullwidth">
   <thead>
@@ -11,7 +11,12 @@
   <tbody>
   {% for l in lines %}
     <tr>
-      <td>{{ l.item.name }}</td>
+      <td>
+        {{ l.item.name }}
+        {% if l.item.category %}
+          <span class="tag is-light is-small ml-2">{{ l.item.category.name }}</span>
+        {% endif %}
+      </td>
       <td>{{ l.qty }}</td>
       <td class="has-text-right">
         <a class="button is-small is-light" href="{% url 'orders:remove' l.item.id %}">Remove</a>

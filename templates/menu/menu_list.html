@@ -8,6 +8,16 @@
   <div class="column is-4">
     <div class="card">
       <div class="card-content">
+        <div class="mb-2">
+          <span class="tag is-success is-light">FREE</span>
+          {% if i.category %}
+            {% if i.category.daily_quota %}
+              <span class="tag is-info is-light">{{ i.category.name }} • {{ i.category.daily_quota }}/day</span>
+            {% else %}
+              <span class="tag is-light">{{ i.category.name }}</span>
+            {% endif %}
+          {% endif %}
+        </div>
         <p class="title is-5">{{ i.name }}</p>
         {% if i.description %}<p>{{ i.description }}</p>{% endif %}
         <div class="mt-3">
