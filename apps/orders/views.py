@@ -46,10 +46,12 @@ def _cart_counts(cart):
             counts[it.category.slug] += cart.get(str(it.id), 0)
     return counts
 
+@login_required
 def view_cart(request):
     lines = _cart_items(request)
     return render(request, 'orders/cart.html', {"lines": lines})
 
+@login_required
 def add(request, pk):
     item = get_object_or_404(Item, pk=pk, is_active=True)
     cart = request.session.get('cart', {})
@@ -70,6 +72,7 @@ def add(request, pk):
     messages.success(request, "Item added to cart.")
     return redirect('orders:cart')
 
+@login_required
 def remove(request, pk):
     cart = request.session.get('cart', {})
     if str(pk) in cart:

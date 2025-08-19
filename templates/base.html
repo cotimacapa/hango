@@ -31,13 +31,19 @@
       <div id="navMenu" class="navbar-menu">
         <div class="navbar-start"><a class="navbar-item" href="/">Menu</a></div>
         <div class="navbar-end">
+
           <a class="navbar-item" href="/orders/cart/">Cart ({{ cart_count }})</a>
+
           {% if request.user.is_authenticated %}
             <div class="navbar-item">Hello, {{ request.user.first_name|default:request.user.username }}</div>
-            <a class="navbar-item" href="/admin/">Admin</a>
-          {% else %}
-            <a class="navbar-item" href="/admin/login/?next=/">Login</a>
+            {% if request.user.is_staff %}
+              <a class="navbar-item" href="{% url 'orders:kitchen' %}">Kitchen</a>
+            {% endif %}
+              <a class="navbar-item" href="{% url 'logout' %}?next=/">Log out</a>
+            {% else %}
+              <a class="navbar-item" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Login</a>
           {% endif %}
+
           <a id="themeToggle" class="navbar-item theme-toggle" role="button"
             aria-label="Toggle color scheme" title="Theme: System">
             <span id="themeIcon" aria-hidden="true"></span>
