@@ -1,0 +1,79 @@
+{% extends "admin/base.html" %}
+
+{% block extrahead %}
+  {{ block.super }}
+
+  <!-- Theme sync with public site -->
+  <script>
+  (function () {
+    const KEY = 'hango:theme';
+    try {
+      const saved = localStorage.getItem(KEY);
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (_) {}
+
+    const obs = new MutationObserver(muts => {
+      for (const m of muts) {
+        if (m.type === 'attributes' && m.attributeName === 'data-theme') {
+          try { localStorage.setItem(KEY, document.documentElement.getAttribute('data-theme') || 'light'); } catch (_) {}
+        }
+      }
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  })();
+  </script>
+
+  <!-- Light/Dark aware styling to match your public navbar -->
+  <style>
+    /* Same tokens you use on the public site */
+    :root {
+      --navbar-bg: #00d1b2;      /* Bulma is-primary light */
+      --navbar-text: #ffffff;
+      --surface: #ffffff;
+    }
+    :root[data-theme="dark"] {
+      --navbar-bg: #1f232b;      /* your dark navbar */
+      --navbar-text: #e5e7eb;
+      --surface: #171a21;
+    }
+
+    /* Button look & spacing for admin login box */
+    .hango-login-actions { margin-top: 1rem; }
+    .hango-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .5rem .85rem;
+      border-radius: 6px;
+      background: var(--navbar-bg);
+      color: var(--navbar-text) !important;
+      border: 1px solid rgba(255,255,255,.15);
+      text-decoration: none;
+      font-weight: 600;
+      line-height: 1.2;
+      box-shadow: 0 1px 0 rgba(0,0,0,.05);
+      transition: filter .15s ease, opacity .15s ease;
+    }
+    .hango-back-btn:hover { filter: brightness(1.06); }
+    .hango-back-btn:active { filter: brightness(0.98); }
+  </style>
+
+  <!-- Inject button on the admin LOGIN page only -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = document.getElementById('login-form');
+    if (!form) return; // Only on login
+
+    var p = document.createElement('p');
+    p.className = 'hango-login-actions';
+
+    var a = document.createElement('a');
+    a.href = '/';
+    a.className = 'hango-back-btn';
+    a.innerHTML = '← Back to Hango';
+
+    p.appendChild(a);
+    form.parentNode.appendChild(p);
+  });
+  </script>
+{% endblock %}

@@ -1,41 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Hango{% endblock %}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <link rel="stylesheet" href="/static/css/styles.css">
-</head>
-<body>
-<nav class="navbar is-primary" role="navigation">
-  <div class="navbar-brand">
-    <a class="navbar-item" href="/">🍽️ Hango </a>
-    <a role="button" class="navbar-burger" data-target="navMenu"><span></span><span></span><span></span></a>
-  </div>
-  <div id="navMenu" class="navbar-menu">
-    <div class="navbar-start"><a class="navbar-item" href="/">Menu</a></div>
-    <div class="navbar-end">
-      <a class="navbar-item" href="/orders/cart/">Cart ({{ cart_count }})</a>
-      {% if request.user.is_authenticated %}
-        <div class="navbar-item">Hello, {{ request.user.first_name|default:request.user.username }}</div>
-        <a class="navbar-item" href="/admin/">Admin</a>
-      {% else %}
-        <a class="navbar-item" href="/admin/login/?next=/">Login</a>
-      {% endif %}
-    </div>
-  </div>
-</nav>
-<section class="section"><div class="container">
-  {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
-  {% block content %}{% endblock %}
-</div></section>
-<script>
-  document.addEventListener('DOMContentLoaded',()=>{
-    const b=document.querySelector('.navbar-burger'); const m=document.getElementById('navMenu');
-    if(b&&m){b.addEventListener('click',()=>{b.classList.toggle('is-active'); m.classList.toggle('is-active');});}
-  });
-</script>
-</body>
-</html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Hango{% endblock %}</title>
 
+    <script>
+      (function () {
+        const KEY = 'hango:theme';
+        let saved = null;
+        try { saved = localStorage.getItem(KEY); } catch (_) {}
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = (saved === 'auto')
+          ? (prefersDark ? 'dark' : 'light')
+          : (saved || (prefersDark ? 'dark' : 'light'));
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+  </head>
+  <body>
+    <nav class="navbar is-primary" role="navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item" href="/">🍽️ Hango </a>
+        <a role="button" class="navbar-burger" data-target="navMenu"><span></span><span></span><span></span></a>
+      </div>
+      <div id="navMenu" class="navbar-menu">
+        <div class="navbar-start"><a class="navbar-item" href="/">Menu</a></div>
+        <div class="navbar-end">
+          <a class="navbar-item" href="/orders/cart/">Cart ({{ cart_count }})</a>
+          {% if request.user.is_authenticated %}
+            <div class="navbar-item">Hello, {{ request.user.first_name|default:request.user.username }}</div>
+            <a class="navbar-item" href="/admin/">Admin</a>
+          {% else %}
+            <a class="navbar-item" href="/admin/login/?next=/">Login</a>
+          {% endif %}
+          <a id="themeToggle" class="navbar-item theme-toggle" role="button"
+            aria-label="Toggle color scheme" title="Theme: System">
+            <span id="themeIcon" aria-hidden="true"></span>
+          </a>
+        </div>
+      </div>
+    </nav>
+    <section class="section"><div class="container">
+      {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+    </div></section>
+
+    <script>
+      // Three-state theme toggle: light ↔ dark ↔ system(auto)
+      (function () {
+        const KEY = 'hango:theme';
+        const STATES = ['light', 'dark', 'auto']; // "auto" = system preference
+        const btn  = document.getElementById('themeToggle');
+        const icon = document.getElementById('themeIcon');
+
+        // Icons (inline SVG): moon, sun, and admin-like "system" (half-filled circle)
+        const MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
+                    'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+                    '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" ' +
+                    'stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>';
+
+        const SUN  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
+                    'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+                    '<circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>' +
+                    '<g stroke="currentColor" stroke-width="2">' +
+                    '<path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12"/>' +
+                    '<path d="M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></g></svg>';
+
+        // Admin-style "System": circle outline + vertical divider + right half filled
+        const SYSTEM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
+                      'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+                      '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>' +
+                      // right semicircle fill (top -> bottom arc, then close)
+                      '<path d="M12 5 A7 7 0 1 1 12 19 Z" fill="currentColor"/>' +
+                      // divider line for crisp contrast
+                      '<path d="M12 5 L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
+                      '</svg>';
+
+        const osMedia = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        const label = (state) => state === 'auto' ? 'System' : (state === 'dark' ? 'Dark' : 'Light');
+        const next = (state) => STATES[(STATES.indexOf(state) + 1) % STATES.length];
+        const effective = (state) => state === 'auto'
+          ? (osMedia && osMedia.matches ? 'dark' : 'light')
+          : state;
+
+        function paint(state) {
+          const eff = effective(state);
+          document.documentElement.setAttribute('data-theme', eff);
+          try { localStorage.setItem(KEY, state); } catch (_) {}
+          if (icon) icon.innerHTML = state === 'auto' ? SYSTEM : (eff === 'dark' ? SUN : MOON);
+          if (btn) {
+            const t = 'Theme: ' + label(state);
+            btn.title = t;
+            btn.setAttribute('aria-label', t);
+          }
+        }
+
+        // Initial state: use saved; if none, default to 'auto' (system)
+        let saved = null;
+        try { saved = localStorage.getItem(KEY); } catch (_) {}
+        if (!saved) saved = 'auto';
+        paint(saved);
+
+        // If on 'auto', follow OS changes live
+        if (osMedia) {
+          osMedia.addEventListener('change', () => {
+            const current = (function () { try { return localStorage.getItem(KEY); } catch (_) { return 'auto'; } })();
+            if (current === 'auto') paint('auto');
+          });
+        }
+
+        // Cycle Light → Dark → System on click
+        if (btn) {
+          btn.addEventListener('click', () => {
+            const cur = (function () { try { return localStorage.getItem(KEY); } catch (_) { return 'auto'; } })();
+            paint(next(cur || 'auto'));
+          });
+        }
+      })();
+    </script>
+
+    
+  </body>
+</html>

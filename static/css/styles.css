@@ -1,1 +1,74 @@
+/* === Theme tokens === */
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --muted: #6b7280;
+
+  --surface: #ffffff;      /* cards, boxes */
+  --surface-alt: #f7f7f7;  /* table zebra, soft backgrounds */
+
+  --primary: #00d1b2;      /* Bulma 'is-primary' default */
+  --navbar-bg: var(--primary);
+  --navbar-text: #ffffff;
+  --border: #e5e7eb;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1115;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+
+  --surface: #171a21;
+  --surface-alt: #12151b;
+
+  --primary: #009985;
+  /* --navbar-bg: #1f232b; */
+  --navbar-bg: #001B18;
+  --navbar-text: #e5e7eb;
+  --border: #2a2f3a;
+}
+
+/* === Global application === */
+html, body { background: var(--bg); color: var(--text); }
+a { color: var(--primary); }
+
+/* Navbar (override Bulma primary to respect theme) */
+.navbar.is-primary { background-color: var(--navbar-bg) !important; }
+.navbar .navbar-item, .navbar .navbar-link { color: var(--navbar-text) !important; }
+
+/* Cards & boxes */
+.card, .box, .message, .notification, .modal-card, .dropdown-content {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Tables */
+.table {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.table thead th { color: var(--text); border-color: var(--border); }
+.table td, .table th { border-color: var(--border) !important; }
+.table tr:nth-child(even) { background: var(--surface-alt); }
+
+/* Buttons (keep Bulma feel, tweak contrasts) */
+.button.is-primary { background-color: var(--primary); border-color: transparent; }
+.button.is-light { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+.button.is-dark { background: #2b2f36; color: #e5e7eb; border: 1px solid #2b2f36; }
+
+/* Helpers */
 .navbar .navbar-item { font-weight: 600; }
+
+/* Icon-only toggle styled like admin’s header */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 .75rem;
+  color: var(--navbar-text);
+  opacity: .9;
+}
+.theme-toggle:hover { opacity: 1; }
+.theme-toggle svg { display: block; }
+
