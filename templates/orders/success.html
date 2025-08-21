@@ -6,6 +6,7 @@
 <p>Your order <strong>#{{ order.id }}</strong> has been created and is currently <strong>{{ order.get_status_display }}</strong>.</p>
 <p>Check <a href="/admin/">Admin</a> for details (staff only).</p>
 </div></article>
-<a class="button" href="/">Back to menu</a>
+<a class="button" href="{% url 'menu:list' %}">Back to menu</a>
+
 {% endblock %}
 
