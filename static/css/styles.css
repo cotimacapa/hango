@@ -9,14 +9,14 @@
   --surface: #ffffff;      /* cards, boxes */
   --surface-alt: #f7f7f7;  /* table zebra, soft backgrounds */
 
-  --primary: #00D1B2;      /* Bulma 'is-primary' default */
+  --primary: rgb(0 209 178);      /* Bulma 'is-primary' default */
   --navbar-bg: var(--primary);
   --navbar-text: #ffffff;
   --border: #e5e7eb;
 
   /* Top bar (desktop) hover/active overlays on colored navbar */
-  --navbar-hover-bg: rgba(0 209 178 / 0.77);
-  --navbar-active-bg: rgba(0 209 178 / 0.77);
+  --navbar-hover-bg: rgba(0 209 178 / 0.8);
+  --navbar-active-bg: rgba(0 209 178 / 0.8);
 }
 
 :root[data-theme="dark"] {
@@ -27,14 +27,15 @@
   --surface: #171a21;
   --surface-alt: #12151b;
 
-  --primary: #009985;
+  --primary: #00332D;
+  --hover-primary: rgba(0 51 45 / 0.8);
   /* --navbar-bg: #1f232b; */
-  --navbar-bg: #001B18;    /* chosen dark navbar */
+  --navbar-bg: var(--primary);
   --navbar-text: #e5e7eb;
   --border: #2a2f3a;
 
-  --navbar-hover-bg: rgba(255, 255, 255, 0.12);
-  --navbar-active-bg: rgba(255, 255, 255, 0.20);
+  --navbar-hover-bg: var(--hover-primary);
+  --navbar-active-bg: var(--hover-primary);
 }
 
 /* ==========================================================================
