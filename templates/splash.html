@@ -1,9 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Welcome to Hango{% endblock %}
 {% block content %}
 <div class="hero is-medium">
   <div class="hero-body">
     <div class="container has-text-centered">
+      <img class="splash-logo" src="{% static 'img/coti_logo_recreated_cutout.png' %}" alt="COTI logo">
       <h1 class="title">Welcome to Hango</h1>
       <p class="subtitle">Free daily meals for campus students.</p>
       <div class="buttons is-centered mt-4">
