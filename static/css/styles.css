@@ -1,4 +1,6 @@
-/* === Theme tokens === */
+/* ==========================================================================
+   THEME TOKENS
+   -------------------------------------------------------------------------- */
 :root {
   --bg: #ffffff;
   --text: #111111;
@@ -7,10 +9,14 @@
   --surface: #ffffff;      /* cards, boxes */
   --surface-alt: #f7f7f7;  /* table zebra, soft backgrounds */
 
-  --primary: #00d1b2;      /* Bulma 'is-primary' default */
+  --primary: #00D1B2;      /* Bulma 'is-primary' default */
   --navbar-bg: var(--primary);
   --navbar-text: #ffffff;
   --border: #e5e7eb;
+
+  /* Top bar (desktop) hover/active overlays on colored navbar */
+  --navbar-hover-bg: rgba(0 209 178 / 0.77);
+  --navbar-active-bg: rgba(0 209 178 / 0.77);
 }
 
 :root[data-theme="dark"] {
@@ -23,40 +29,90 @@
 
   --primary: #009985;
   /* --navbar-bg: #1f232b; */
-  --navbar-bg: #001B18;    /* your chosen dark navbar */
+  --navbar-bg: #001B18;    /* chosen dark navbar */
   --navbar-text: #e5e7eb;
   --border: #2a2f3a;
+
+  --navbar-hover-bg: rgba(255, 255, 255, 0.12);
+  --navbar-active-bg: rgba(255, 255, 255, 0.20);
 }
 
-/* === Global application === */
+/* ==========================================================================
+   GLOBAL BASE
+   -------------------------------------------------------------------------- */
 html, body { background: var(--bg); color: var(--text); }
 a { color: var(--primary); }
 
-/* Navbar (override Bulma primary to respect theme) */
+/* ==========================================================================
+   NAVBAR — BASE COLORS & STRUCTURE
+   -------------------------------------------------------------------------- */
 .navbar.is-primary { background-color: var(--navbar-bg) !important; }
-.navbar .navbar-item, .navbar .navbar-link { color: var(--navbar-text) !important; }
+.navbar .navbar-item,
+.navbar .navbar-link { color: var(--navbar-text) !important; }
+
 .navbar-burger { cursor: pointer; }
-/* Make burger lines match navbar text color */
 .navbar.is-primary .navbar-burger span { background-color: var(--navbar-text); }
 
-/* Mobile dropdown panel: use app surface + text colors */
+/* Mobile/tablet dropdown panel uses surface tokens */
 .navbar-menu {
   background: var(--surface);
   border-top: 1px solid var(--border);
 }
 .navbar-menu .navbar-item,
-.navbar-menu .navbar-link {
-  color: var(--text) !important;  /* visible in dark mode */
-}
-.navbar-menu .navbar-item:hover,
-.navbar-menu .navbar-link:hover {
-  background: var(--surface-alt) !important;
-  color: var(--text) !important;
-}
-/* Optional: a little spacing between right-side items on mobile */
-.navbar-menu .navbar-end .navbar-item { padding-left: 1rem; padding-right: 1rem; }
+.navbar-menu .navbar-link { color: var(--text) !important; }
 
-/* Theme toggle (icon-only). In top bar it uses navbar text; in dropdown it uses normal text */
+/* Optional: a little spacing between right-side items on mobile */
+.navbar-menu .navbar-end .navbar-item {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* ==========================================================================
+   NAVBAR — STATES (CONSOLIDATED, NO REDUNDANCY)
+   -------------------------------------------------------------------------- */
+/* Desktop / widescreen (Bulma breakpoint 1024px): items sit on colored bar */
+@media (min-width: 1024px) {
+  /* Hover/active for real buttons; never for the greeting */
+  .navbar.is-primary .navbar-item:hover:not(.is-static),
+  .navbar.is-primary .navbar-link:hover {
+    background-color: var(--navbar-hover-bg) !important;
+    color: var(--navbar-text) !important;
+  }
+  .navbar.is-primary .navbar-item.is-active,
+  .navbar.is-primary .navbar-link.is-active {
+    background-color: var(--navbar-active-bg) !important;
+    color: var(--navbar-text) !important;
+  }
+  /* Keep icons/text inside readable on hover/active */
+  .navbar.is-primary .navbar-item:hover:not(.is-static) *,
+  .navbar.is-primary .navbar-link:hover *,
+  .navbar.is-primary .navbar-item.is-active *,
+  .navbar.is-primary .navbar-link.is-active * {
+    color: var(--navbar-text) !important;
+    fill: currentColor !important;
+    stroke: currentColor !important;
+  }
+}
+
+/* Mobile / tablet (<= 1023px): dropdown panel on light/dark surface */
+@media (max-width: 1023.98px) {
+  .navbar-menu .navbar-item:hover:not(.is-static),
+  .navbar-menu .navbar-link:hover {
+    background: var(--surface-alt) !important;
+    color: var(--text) !important;
+  }
+  .navbar-menu .navbar-item.is-active,
+  .navbar-menu .navbar-link.is-active {
+    background: var(--surface-alt) !important;
+    color: var(--text) !important;
+    font-weight: 600;
+  }
+}
+
+/* ==========================================================================
+   NAVBAR — UTILITIES (TOGGLE, GREETING, LOGOUT)
+   -------------------------------------------------------------------------- */
+/* Theme toggle: icon-only; inherits navbar text on top bar, normal text in dropdown */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -68,7 +124,19 @@ a { color: var(--primary); }
 .theme-toggle svg { display: block; }
 .navbar-menu .theme-toggle { color: var(--text); }
 
-/* Make the POST-logout button look like a plain navbar link (both desktop + dropdown) */
+/* Greeting: not clickable, no selection, no hover highlight */
+.navbar-item.is-static {
+  cursor: default;
+  pointer-events: none;
+  user-select: none;
+}
+.navbar-item.is-static:hover,
+.navbar-item.is-static:focus {
+  background: transparent !important;
+  text-decoration: none;
+}
+
+/* Logout form: make button look like a plain link */
 .logout-form { padding: 0; }
 .logout-form .logout-button {
   background: none;
@@ -80,7 +148,9 @@ a { color: var(--primary); }
 }
 .logout-form .logout-button:hover { text-decoration: underline; }
 
-/* Cards & boxes */
+/* ==========================================================================
+   COMPONENTS
+   -------------------------------------------------------------------------- */
 .card, .box, .message, .notification, .modal-card, .dropdown-content {
   background: var(--surface);
   color: var(--text);
@@ -99,8 +169,10 @@ a { color: var(--primary); }
 
 /* Buttons (keep Bulma feel, tweak contrasts) */
 .button.is-primary { background-color: var(--primary); border-color: transparent; }
-.button.is-light { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
-.button.is-dark { background: #2b2f36; color: #e5e7eb; border: 1px solid #2b2f36; }
+.button.is-light    { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+.button.is-dark     { background: #2b2f36; color: #e5e7eb; border: 1px solid #2b2f36; }
 
-/* Helpers */
+/* ==========================================================================
+   HELPERS
+   -------------------------------------------------------------------------- */
 .navbar .navbar-item { font-weight: 600; }
