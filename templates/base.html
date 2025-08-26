@@ -56,19 +56,25 @@
           {% if request.user.is_authenticated %}
             <a class="navbar-item" href="/orders/cart/">Cart ({{ cart_count }})</a>
             <div class="navbar-item">Hello, {{ request.user.first_name|default:request.user.username }}</div>
+
+            {% if request.user.is_staff %}
+              <a class="navbar-item" href="{% url 'orders:kitchen' %}">Kitchen</a>
+              <a class="navbar-item" href="/admin/">Admin</a>
+            {% endif %}
+
+            <!-- POST logout so Django 5 doesn't 405 -->
             <form method="post" action="{% url 'logout' %}" class="navbar-item logout-form">
-              {% csrf_token %}<input type="hidden" name="next" value="/">
+              {% csrf_token %}<input type="hidden" name="next" value="/" />
               <button type="submit" class="logout-button">Log out</button>
             </form>
-          {% else %}
-            <a class="navbar-item" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Login</a>
           {% endif %}
 
-          <!-- Desktop toggle: hidden on touch (mobile/tablet) -->
-          <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="Theme: System" title="Theme: System">
+          <!-- Desktop theme toggle (mobile one stays in .navbar-brand) -->
+          <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="Theme" title="Theme">
             <span class="js-theme-icon" aria-hidden="true"></span>
           </a>
         </div>
+
       </div>
     </nav>
 
