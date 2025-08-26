@@ -24,7 +24,7 @@ STATIC_ROOT=BASE_DIR/'staticfiles'
 DEFAULT_AUTO_FIELD='django.db.models.BigAutoField'
 
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/'     # where to go after successful login
-LOGOUT_REDIRECT_URL = '/'    # where to go after logout
+LOGIN_REDIRECT_URL = '/menu/'      # ← land here after login
+LOGOUT_REDIRECT_URL = '/'          # after logout, go to splash
 
 

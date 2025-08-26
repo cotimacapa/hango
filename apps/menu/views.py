@@ -3,7 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Item
 
 def splash(request):
-    """Public landing page (no auth required)."""
+    """Public landing page. Always render, even if authenticated."""
     return render(request, 'splash.html')
 
 @login_required

@@ -24,57 +24,53 @@
   </head>
   <body>
 
-    <nav class="navbar is-primary" role="navigation">
-
+    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
       <div class="navbar-brand">
-        <a class="navbar-item" href="{% if request.user.is_authenticated %}{% url 'menu:list' %}{% else %}/{% endif %}">🍽️ Hango</a>
+        <!-- Logo ALWAYS goes to splash -->
+        <a class="navbar-item" href="/">🍽️ Hango</a>
 
-        <!-- Mobile/tablet toggle: visible on touch only -->
-        <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="Theme: System" title="Theme: System">
+        <!-- Mobile/tablet theme toggle (always visible) -->
+        <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="Theme" title="Theme">
           <span class="js-theme-icon" aria-hidden="true"></span>
         </a>
 
-        <button class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu" type="button">
+        <!-- Burger -->
+        <button class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="mainNav" type="button">
           <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
         </button>
       </div>
 
-      <div id="navMenu" class="navbar-menu">
+      <div id="mainNav" class="navbar-menu">
         <div class="navbar-start">
           {% if request.user.is_authenticated %}
-            <a class="navbar-item" href="{% url 'menu:list' %}">Menu</a>
-            {% if request.user.is_staff %}
-              <a class="navbar-item" href="{% url 'orders:kitchen' %}">Kitchen</a>
-              <a class="navbar-item" href="/admin/">Admin</a>
-            {% endif %}
-          {% else %}
-            <a class="navbar-item" href="/">Home</a>
+            <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'menu' and request.resolver_match.url_name == 'list' %}is-active{% endif %}"
+              href="{% url 'menu:list' %}">Menu</a>
           {% endif %}
         </div>
 
         <div class="navbar-end">
           {% if request.user.is_authenticated %}
-            <a class="navbar-item" href="/orders/cart/">Cart ({{ cart_count }})</a>
+            <a class="navbar-item" href="{% url 'orders:cart' %}">Cart ({{ cart_count }})</a>
             <div class="navbar-item">Hello, {{ request.user.first_name|default:request.user.username }}</div>
 
             {% if request.user.is_staff %}
-              <a class="navbar-item" href="{% url 'orders:kitchen' %}">Kitchen</a>
+              <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'kitchen' %}is-active{% endif %}"
+                href="{% url 'orders:kitchen' %}">Kitchen</a>
               <a class="navbar-item" href="/admin/">Admin</a>
             {% endif %}
 
-            <!-- POST logout so Django 5 doesn't 405 -->
+            <!-- POST logout (Django 5) -->
             <form method="post" action="{% url 'logout' %}" class="navbar-item logout-form">
               {% csrf_token %}<input type="hidden" name="next" value="/" />
               <button type="submit" class="logout-button">Log out</button>
             </form>
           {% endif %}
 
-          <!-- Desktop theme toggle (mobile one stays in .navbar-brand) -->
+          <!-- Desktop theme toggle -->
           <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="Theme" title="Theme">
             <span class="js-theme-icon" aria-hidden="true"></span>
           </a>
         </div>
-
       </div>
     </nav>
 
