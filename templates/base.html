@@ -23,15 +23,23 @@
     <link rel="stylesheet" href="/static/css/styles.css">
   </head>
   <body>
-    <nav class="navbar is-primary" role="navigation">
-      <div class="navbar-brand">
-        <a class="navbar-item" href="{% if request.user.is_authenticated %}{% url 'menu:list' %}{% else %}/{% endif %}">
-          🍽️ Hango
-        </a>
-        <a role="button" class="navbar-burger" data-target="navMenu"><span></span><span></span><span></span></a>
-      </div>
-      <div id="navMenu" class="navbar-menu">
 
+    <nav class="navbar is-primary" role="navigation">
+
+      <div class="navbar-brand">
+        <a class="navbar-item" href="{% if request.user.is_authenticated %}{% url 'menu:list' %}{% else %}/{% endif %}">🍽️ Hango</a>
+
+        <!-- Mobile/tablet toggle: visible on touch only -->
+        <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="Theme: System" title="Theme: System">
+          <span class="js-theme-icon" aria-hidden="true"></span>
+        </a>
+
+        <button class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navMenu" type="button">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div id="navMenu" class="navbar-menu">
         <div class="navbar-start">
           {% if request.user.is_authenticated %}
             <a class="navbar-item" href="{% url 'menu:list' %}">Menu</a>
@@ -40,7 +48,7 @@
               <a class="navbar-item" href="/admin/">Admin</a>
             {% endif %}
           {% else %}
-            <!-- <a class="navbar-item" href="/">Home</a> -->
+            <a class="navbar-item" href="/">Home</a>
           {% endif %}
         </div>
 
@@ -56,92 +64,86 @@
             <a class="navbar-item" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Login</a>
           {% endif %}
 
-          <!-- theme toggle stays last -->
-          <a id="themeToggle" class="navbar-item theme-toggle" role="button" aria-label="Toggle color scheme" title="Theme">
-            <span id="themeIcon" aria-hidden="true"></span>
+          <!-- Desktop toggle: hidden on touch (mobile/tablet) -->
+          <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="Theme: System" title="Theme: System">
+            <span class="js-theme-icon" aria-hidden="true"></span>
           </a>
         </div>
-
-        
       </div>
     </nav>
+
+
     <section class="section"><div class="container">
       {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
       {% block content %}{% endblock %}
     </div></section>
 
     <script>
-      // Three-state theme toggle: light ↔ dark ↔ system(auto)
+
+      document.addEventListener('DOMContentLoaded', () => {
+        // BULMA burger: toggle .is-active on both the button and its target
+        document.querySelectorAll('.navbar-burger').forEach(burger => {
+          burger.addEventListener('click', () => {
+            const targetId = burger.dataset.target;
+            const target = targetId ? document.getElementById(targetId) : null;
+
+            burger.classList.toggle('is-active');
+            if (target) target.classList.toggle('is-active');
+
+            // A11y: reflect state
+            const expanded = burger.getAttribute('aria-expanded') === 'true';
+            burger.setAttribute('aria-expanded', String(!expanded));
+          });
+        });
+      });
+
+      // Three-state theme toggle (light ↔ dark ↔ system), supports multiple buttons
       (function () {
         const KEY = 'hango:theme';
-        const STATES = ['light', 'dark', 'auto']; // "auto" = system preference
-        const btn  = document.getElementById('themeToggle');
-        const icon = document.getElementById('themeIcon');
+        const STATES = ['light', 'dark', 'auto']; // "auto" follows OS
+        const btns  = document.querySelectorAll('.theme-toggle');
+        const icons = document.querySelectorAll('.theme-toggle .js-theme-icon');
 
-        // Icons (inline SVG): moon, sun, and admin-like "system" (half-filled circle)
-        const MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
-                    'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-                    '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" ' +
-                    'stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>';
-
-        const SUN  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
-                    'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-                    '<circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>' +
-                    '<g stroke="currentColor" stroke-width="2">' +
-                    '<path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12"/>' +
-                    '<path d="M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></g></svg>';
-
-        // Admin-style "System": circle outline + vertical divider + right half filled
-        const SYSTEM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" ' +
-                      'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-                      '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>' +
-                      // right semicircle fill (top -> bottom arc, then close)
-                      '<path d="M12 5 A7 7 0 1 1 12 19 Z" fill="currentColor"/>' +
-                      // divider line for crisp contrast
-                      '<path d="M12 5 L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>' +
-                      '</svg>';
+        const MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>';
+        const SUN  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2"><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12"/><path d="M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></g></svg>';
+        // Admin-like "system" icon (half-filled circle)
+        const SYSTEM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 5 A7 7 0 1 1 12 19 Z" fill="currentColor"/><path d="M12 5 L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 
         const osMedia = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-
-        const label = (state) => state === 'auto' ? 'System' : (state === 'dark' ? 'Dark' : 'Light');
-        const next = (state) => STATES[(STATES.indexOf(state) + 1) % STATES.length];
-        const effective = (state) => state === 'auto'
-          ? (osMedia && osMedia.matches ? 'dark' : 'light')
-          : state;
+        const label = (s) => s === 'auto' ? 'System' : (s === 'dark' ? 'Dark' : 'Light');
+        const next  = (s) => STATES[(STATES.indexOf(s) + 1) % STATES.length];
+        const effective = (s) => s === 'auto' ? (osMedia && osMedia.matches ? 'dark' : 'light') : s;
 
         function paint(state) {
           const eff = effective(state);
           document.documentElement.setAttribute('data-theme', eff);
           try { localStorage.setItem(KEY, state); } catch (_) {}
-          if (icon) icon.innerHTML = state === 'auto' ? SYSTEM : (eff === 'dark' ? SUN : MOON);
-          if (btn) {
+          icons.forEach(el => el.innerHTML = state === 'auto' ? SYSTEM : (eff === 'dark' ? SUN : MOON));
+          btns.forEach(el => {
             const t = 'Theme: ' + label(state);
-            btn.title = t;
-            btn.setAttribute('aria-label', t);
-          }
+            el.title = t; el.setAttribute('aria-label', t);
+          });
         }
 
-        // Initial state: use saved; if none, default to 'auto' (system)
+        // Initial state
         let saved = null;
         try { saved = localStorage.getItem(KEY); } catch (_) {}
         if (!saved) saved = 'auto';
         paint(saved);
 
-        // If on 'auto', follow OS changes live
+        // Follow OS when in 'auto'
         if (osMedia) {
           osMedia.addEventListener('change', () => {
-            const current = (function () { try { return localStorage.getItem(KEY); } catch (_) { return 'auto'; } })();
-            if (current === 'auto') paint('auto');
+            const cur = (function(){ try { return localStorage.getItem(KEY); } catch(_) { return 'auto'; } })();
+            if (cur === 'auto') paint('auto');
           });
         }
 
-        // Cycle Light → Dark → System on click
-        if (btn) {
-          btn.addEventListener('click', () => {
-            const cur = (function () { try { return localStorage.getItem(KEY); } catch (_) { return 'auto'; } })();
-            paint(next(cur || 'auto'));
-          });
-        }
+        // Click handlers for all toggles
+        btns.forEach(btn => btn.addEventListener('click', () => {
+          const cur = (function(){ try { return localStorage.getItem(KEY); } catch(_) { return 'auto'; } })() || 'auto';
+          paint(next(cur));
+        }));
       })();
     </script>
 

@@ -23,7 +23,7 @@
 
   --primary: #009985;
   /* --navbar-bg: #1f232b; */
-  --navbar-bg: #001B18;
+  --navbar-bg: #001B18;    /* your chosen dark navbar */
   --navbar-text: #e5e7eb;
   --border: #2a2f3a;
 }
@@ -35,6 +35,50 @@ a { color: var(--primary); }
 /* Navbar (override Bulma primary to respect theme) */
 .navbar.is-primary { background-color: var(--navbar-bg) !important; }
 .navbar .navbar-item, .navbar .navbar-link { color: var(--navbar-text) !important; }
+.navbar-burger { cursor: pointer; }
+/* Make burger lines match navbar text color */
+.navbar.is-primary .navbar-burger span { background-color: var(--navbar-text); }
+
+/* Mobile dropdown panel: use app surface + text colors */
+.navbar-menu {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.navbar-menu .navbar-item,
+.navbar-menu .navbar-link {
+  color: var(--text) !important;  /* visible in dark mode */
+}
+.navbar-menu .navbar-item:hover,
+.navbar-menu .navbar-link:hover {
+  background: var(--surface-alt) !important;
+  color: var(--text) !important;
+}
+/* Optional: a little spacing between right-side items on mobile */
+.navbar-menu .navbar-end .navbar-item { padding-left: 1rem; padding-right: 1rem; }
+
+/* Theme toggle (icon-only). In top bar it uses navbar text; in dropdown it uses normal text */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 .75rem;
+  color: var(--navbar-text);
+  opacity: .9;
+}
+.theme-toggle:hover { opacity: 1; }
+.theme-toggle svg { display: block; }
+.navbar-menu .theme-toggle { color: var(--text); }
+
+/* Make the POST-logout button look like a plain navbar link (both desktop + dropdown) */
+.logout-form { padding: 0; }
+.logout-form .logout-button {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.logout-form .logout-button:hover { text-decoration: underline; }
 
 /* Cards & boxes */
 .card, .box, .message, .notification, .modal-card, .dropdown-content {
@@ -60,26 +104,3 @@ a { color: var(--primary); }
 
 /* Helpers */
 .navbar .navbar-item { font-weight: 600; }
-
-/* Icon-only toggle styled like admin’s header */
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 .75rem;
-  color: var(--navbar-text);
-  opacity: .9;
-}
-.theme-toggle:hover { opacity: 1; }
-.theme-toggle svg { display: block; }
-
-/* Make the POST-logout button look like a plain navbar link */
-.logout-form { padding: 0; }
-.logout-form .logout-button {
-  background: none;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  padding: 0;
-  cursor: pointer;
-}
-.logout-form .logout-button:hover { text-decoration: underline; }
