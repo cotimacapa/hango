@@ -177,3 +177,101 @@ a { color: var(--primary); }
    HELPERS
    -------------------------------------------------------------------------- */
 .navbar .navbar-item { font-weight: 600; }
+
+/* Splash logo sizing (controlled via CSS variable) */
+:root { --splash-logo-w: clamp(220px, 28vw, 520px); }
+
+.splash-logo {
+  display: block;
+  width: var(--splash-logo-w);   /* control size here */
+  height: auto;                  /* keep aspect ratio */
+  margin: 0 auto 1rem;
+  image-rendering: auto;         /* crisp when downscaled from 2x/4x assets */
+  /* optional shadows for visibility on light bg */
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.18))
+          drop-shadow(0 8px 28px rgba(0,0,0,.10));
+}
+
+/* Quick presets (use one of these extra classes in HTML if you want) */
+.splash-logo.is-small  { --splash-logo-w: 240px; }
+.splash-logo.is-medium { --splash-logo-w: 380px; }
+.splash-logo.is-large  { --splash-logo-w: 640px; }
+
+/* Example breakpoint override (bigger on wide screens) */
+@media (min-width: 1200px) {
+  :root { --splash-logo-w: 600px; }
+}
+
+/* === Splash split layout ================================================== */
+:root {
+  /* tweak if you want a stronger/weaker divider */
+  --splash-divider: rgba(0, 0, 0, .14);
+}
+:root[data-theme="dark"] {
+  --splash-divider: rgba(255, 255, 255, .16);
+}
+
+/* Container: grid with a center divider */
+.splash-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;      /* left | divider | right */
+  align-items: center;
+  gap: clamp(20px, 4vw, 56px);
+  max-width: min(1100px, 92vw);
+  margin: 5vh auto 0;
+}
+
+/* Left = logos */
+.splash-left {
+  display: flex;
+  justify-content: center;
+}
+
+/* Right = text/buttons */
+.splash-right {
+  text-align: left;
+}
+
+/* Vertical divider with soft fade (theme-aware) */
+.splash-divider {
+  position: relative;
+  width: 1px;
+  height: clamp(200px, 48vh, 520px);
+  align-self: stretch;
+}
+.splash-divider::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--splash-divider) 15%,
+    var(--splash-divider) 85%,
+    transparent 100%
+  );
+  border-radius: 999px;
+}
+
+/* Mobile: stack, use a horizontal divider, center text */
+@media (max-width: 900px) {
+  .splash-wrap {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;     /* left, divider, right */
+    text-align: center;
+  }
+  .splash-right { text-align: center; }
+  .splash-divider {
+    width: 100%;
+    height: 1px;
+    margin: 8px 0 20px;
+  }
+  .splash-divider::before {
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      var(--splash-divider) 15%,
+      var(--splash-divider) 85%,
+      transparent 100%
+    );
+  }
+}

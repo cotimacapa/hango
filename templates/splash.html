@@ -1,23 +1,48 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Welcome to Hango{% endblock %}
+
 {% block content %}
-<div class="hero is-medium">
-  <div class="hero-body">
-    <div class="container has-text-centered">
-      <img class="splash-logo" src="{% static 'img/coti_logo_recreated_cutout.png' %}" alt="COTI logo">
-      <h1 class="title">Welcome to Hango</h1>
-      <p class="subtitle">Free daily meals for campus students.</p>
-      <div class="buttons is-centered mt-4">
-        <a class="button is-primary is-medium" href="{% url 'login' %}?next={% url 'menu:list' %}">
-          Sign in to view the menu
-        </a>
-        <a class="button is-light is-medium" href="/admin/">Staff sign-in</a>
+<section class="section">
+  <div class="container">
+    <div class="splash-wrap">
+      <!-- LEFT: logos -->
+      <div class="splash-left">
+        <img class="splash-logo is-medium"
+             src="{% static 'img/coti_logo_recreated_cutout.png' %}"
+             alt="COTI logo">
       </div>
-      <p class="mt-4 has-text-grey">
-        Need help? Contact the cafeteria desk during pickup hours.
-      </p>
+
+      <!-- DIVIDER -->
+      <div class="splash-divider" aria-hidden="true"></div>
+
+      <!-- RIGHT: welcome & actions -->
+      <div class="splash-right">
+        <h1 class="title">Welcome to Hango</h1>
+        <p class="subtitle">Free daily meals for campus students.</p>
+
+        {% if request.user.is_authenticated %}
+          <div class="buttons">
+            <a class="button is-primary is-medium" href="{% url 'menu:list' %}">Open menu</a>
+            {% if request.user.is_staff %}
+              <a class="button is-light is-medium" href="{% url 'orders:kitchen' %}">Kitchen</a>
+              <a class="button is-light is-medium" href="/admin/">Admin</a>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="buttons">
+            <a class="button is-primary is-medium" href="{% url 'login' %}?next={% url 'menu:list' %}">
+              Sign in to view the menu
+            </a>
+            <a class="button is-light is-medium" href="/admin/">Staff sign-in</a>
+          </div>
+          <p class="is-size-7 has-text-grey mt-4">
+            Need help? Contact the cafeteria desk during pickup hours.
+          </p>
+        {% endif %}
+      </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock %}
