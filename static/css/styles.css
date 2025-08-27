@@ -328,6 +328,25 @@ a { color: var(--primary); }
 
 }
 
+/* Default: assume dark UI shows white logo */
+.splash-logo--dark  { display: block; }
+.splash-logo--light { display: none; }
+
+/* Light theme: show the dark-ink logo instead */
+:root[data-theme="light"] .splash-logo--dark  { display: none; }
+:root[data-theme="light"] .splash-logo--light { display: block; }
+
+/* “System / Auto”: follow OS preference */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] .splash-logo--dark  { display: none; }
+  :root[data-theme="auto"] .splash-logo--light { display: block; }
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .splash-logo--dark  { display: block; }
+  :root[data-theme="auto"] .splash-logo--light { display: none; }
+}
+
+
 /* ==========================================================================
    9) MISC HELPERS
    -------------------------------------------------------------------------- */
