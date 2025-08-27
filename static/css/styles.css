@@ -1,5 +1,5 @@
 /* ==========================================================================
-   THEME TOKENS
+   1) THEME TOKENS
    -------------------------------------------------------------------------- */
 :root {
   --bg: #ffffff;
@@ -7,16 +7,22 @@
   --muted: #6b7280;
 
   --surface: #ffffff;      /* cards, boxes */
-  --surface-alt: #f7f7f7;  /* table zebra, soft backgrounds */
+  --surface-alt: #f7f7f7;  /* zebra rows, subtle backgrounds */
 
-  --primary: rgb(0 209 178);      /* Bulma 'is-primary' default */
+  --primary: rgb(0 209 178);     /* Bulma 'is-primary' default (light) */
   --navbar-bg: var(--primary);
   --navbar-text: #ffffff;
   --border: #e5e7eb;
 
-  /* Top bar (desktop) hover/active overlays on colored navbar */
+  /* Top bar overlays (desktop) */
   --navbar-hover-bg: rgba(0 209 178 / 0.8);
   --navbar-active-bg: rgba(0 209 178 / 0.8);
+
+  /* Splash */
+  --splash-logo-w: clamp(220px, 28vw, 520px);
+  --splash-divider: rgba(0, 0, 0, .14);
+  --stack-gap: 24px;   /* equal space above & below divider on small screens */
+
 }
 
 :root[data-theme="dark"] {
@@ -27,25 +33,26 @@
   --surface: #171a21;
   --surface-alt: #12151b;
 
-  --primary: #00332D;
+  --primary: #00332D;              /* navbar base (dark) */
   --hover-primary: rgba(0 51 45 / 0.8);
-  /* --navbar-bg: #1f232b; */
   --navbar-bg: var(--primary);
   --navbar-text: #e5e7eb;
   --border: #2a2f3a;
 
   --navbar-hover-bg: var(--hover-primary);
   --navbar-active-bg: var(--hover-primary);
+
+  --splash-divider: rgba(255, 255, 255, .16);
 }
 
 /* ==========================================================================
-   GLOBAL BASE
+   2) GLOBAL BASE
    -------------------------------------------------------------------------- */
 html, body { background: var(--bg); color: var(--text); }
 a { color: var(--primary); }
 
 /* ==========================================================================
-   NAVBAR — BASE COLORS & STRUCTURE
+   3) NAVBAR — BASE
    -------------------------------------------------------------------------- */
 .navbar.is-primary { background-color: var(--navbar-bg) !important; }
 .navbar .navbar-item,
@@ -54,7 +61,7 @@ a { color: var(--primary); }
 .navbar-burger { cursor: pointer; }
 .navbar.is-primary .navbar-burger span { background-color: var(--navbar-text); }
 
-/* Mobile/tablet dropdown panel uses surface tokens */
+/* Dropdown panel uses surface tokens */
 .navbar-menu {
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -62,18 +69,14 @@ a { color: var(--primary); }
 .navbar-menu .navbar-item,
 .navbar-menu .navbar-link { color: var(--text) !important; }
 
-/* Optional: a little spacing between right-side items on mobile */
-.navbar-menu .navbar-end .navbar-item {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
+/* A touch of spacing between right-side items on mobile */
+.navbar-menu .navbar-end .navbar-item { padding-left: 1rem; padding-right: 1rem; }
 
 /* ==========================================================================
-   NAVBAR — STATES (CONSOLIDATED, NO REDUNDANCY)
+   4) NAVBAR — STATES (DESKTOP vs MOBILE)
    -------------------------------------------------------------------------- */
-/* Desktop / widescreen (Bulma breakpoint 1024px): items sit on colored bar */
+/* Desktop (>=1024px): items sit on the colored bar */
 @media (min-width: 1024px) {
-  /* Hover/active for real buttons; never for the greeting */
   .navbar.is-primary .navbar-item:hover:not(.is-static),
   .navbar.is-primary .navbar-link:hover {
     background-color: var(--navbar-hover-bg) !important;
@@ -84,7 +87,7 @@ a { color: var(--primary); }
     background-color: var(--navbar-active-bg) !important;
     color: var(--navbar-text) !important;
   }
-  /* Keep icons/text inside readable on hover/active */
+  /* keep icons/text visible on hover/active */
   .navbar.is-primary .navbar-item:hover:not(.is-static) *,
   .navbar.is-primary .navbar-link:hover *,
   .navbar.is-primary .navbar-item.is-active *,
@@ -95,7 +98,7 @@ a { color: var(--primary); }
   }
 }
 
-/* Mobile / tablet (<= 1023px): dropdown panel on light/dark surface */
+/* Mobile (<=1023px): items live on surface */
 @media (max-width: 1023.98px) {
   .navbar-menu .navbar-item:hover:not(.is-static),
   .navbar-menu .navbar-link:hover {
@@ -111,46 +114,28 @@ a { color: var(--primary); }
 }
 
 /* ==========================================================================
-   NAVBAR — UTILITIES (TOGGLE, GREETING, LOGOUT)
+   5) NAVBAR — UTILITIES (TOGGLE, GREETING, LOGOUT)
    -------------------------------------------------------------------------- */
-/* Theme toggle: icon-only; inherits navbar text on top bar, normal text in dropdown */
 .theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 .75rem;
-  color: var(--navbar-text);
-  opacity: .9;
+  display: inline-flex; align-items: center;
+  padding: 0 .75rem; color: var(--navbar-text); opacity: .9;
 }
 .theme-toggle:hover { opacity: 1; }
 .theme-toggle svg { display: block; }
 .navbar-menu .theme-toggle { color: var(--text); }
 
-/* Greeting: not clickable, no selection, no hover highlight */
-.navbar-item.is-static {
-  cursor: default;
-  pointer-events: none;
-  user-select: none;
-}
+.navbar-item.is-static { cursor: default; pointer-events: none; user-select: none; }
 .navbar-item.is-static:hover,
-.navbar-item.is-static:focus {
-  background: transparent !important;
-  text-decoration: none;
-}
+.navbar-item.is-static:focus { background: transparent !important; text-decoration: none; }
 
-/* Logout form: make button look like a plain link */
 .logout-form { padding: 0; }
 .logout-form .logout-button {
-  background: none;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  padding: 0;
-  cursor: pointer;
+  background: none; border: 0; color: inherit; font: inherit; padding: 0; cursor: pointer;
 }
 .logout-form .logout-button:hover { text-decoration: underline; }
 
 /* ==========================================================================
-   COMPONENTS
+   6) COMPONENTS
    -------------------------------------------------------------------------- */
 .card, .box, .message, .notification, .modal-card, .dropdown-content {
   background: var(--surface);
@@ -174,104 +159,135 @@ a { color: var(--primary); }
 .button.is-dark     { background: #2b2f36; color: #e5e7eb; border: 1px solid #2b2f36; }
 
 /* ==========================================================================
-   HELPERS
+   7) SPLASH — LOGO SIZE
    -------------------------------------------------------------------------- */
-.navbar .navbar-item { font-weight: 600; }
+:root { --splash-logo-w: clamp(220px, 26vw, 480px); }  /* balanced for wide screens */
 
-/* Splash logo sizing (controlled via CSS variable) */
-:root { --splash-logo-w: clamp(220px, 28vw, 520px); }
-
-.splash-logo {
-  display: block;
-  width: var(--splash-logo-w);   /* control size here */
-  height: auto;                  /* keep aspect ratio */
-  margin: 0 auto 1rem;
-  image-rendering: auto;         /* crisp when downscaled from 2x/4x assets */
-  /* optional shadows for visibility on light bg */
-  filter: drop-shadow(0 1px 0 rgba(0,0,0,.18))
-          drop-shadow(0 8px 28px rgba(0,0,0,.10));
+.splash-logo{
+  display:block;
+  width:var(--splash-logo-w);
+  height:auto;
+  margin:0 auto;               /* no extra bottom margin */
+  image-rendering:auto;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.18))
+         drop-shadow(0 8px 28px rgba(0,0,0,.10));
+}
+:root[data-theme="light"] .splash-logo{
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.28))
+         drop-shadow(0 8px 28px rgba(0,0,0,.12));
 }
 
-/* Quick presets (use one of these extra classes in HTML if you want) */
-.splash-logo.is-small  { --splash-logo-w: 240px; }
-.splash-logo.is-medium { --splash-logo-w: 380px; }
-.splash-logo.is-large  { --splash-logo-w: 640px; }
-
-/* Example breakpoint override (bigger on wide screens) */
-@media (min-width: 1200px) {
-  :root { --splash-logo-w: 600px; }
+/* ==========================================================================
+   8) SPLASH — SPLIT LAYOUT + ALIGNMENT (desktop & mobile)
+   -------------------------------------------------------------------------- */
+.splash-wrap{
+  display:grid;
+  /* equal-weight columns, fixed 1px divider between them */
+  grid-template-columns: minmax(380px,1fr) 1px minmax(460px,1fr);
+  place-items:center;                   /* center both axes for all three cells */
+  column-gap: clamp(32px, 6vw, 96px);
+  row-gap: 0;
+  max-width: 1180px;
+  margin: 8vh auto 0;
+  min-height: 62vh;                     /* gives a stable visual center */
 }
 
-/* === Splash split layout ================================================== */
-:root {
-  /* tweak if you want a stronger/weaker divider */
-  --splash-divider: rgba(0, 0, 0, .14);
+.splash-left   { justify-self:end; }    /* logo hugs the divider */
+.splash-right  {
+  justify-self:start;
+  text-align:left;
+  max-width: 560px;                     /* prevents super-wide lines */
+  padding-block: 20px;                  /* equal top/bottom breathing room */
 }
-:root[data-theme="dark"] {
-  --splash-divider: rgba(255, 255, 255, .16);
-}
+.splash-right .title    { margin: 0 0 .9rem; line-height: 1.12; }
+.splash-right .subtitle { margin: .6rem 0 1.25rem; }
+.splash-right .buttons  { display:flex; flex-wrap:wrap; gap:.75rem; }
 
-/* Container: grid with a center divider */
-.splash-wrap {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;      /* left | divider | right */
-  align-items: center;
-  gap: clamp(20px, 4vw, 56px);
-  max-width: min(1100px, 92vw);
-  margin: 5vh auto 0;
+/* Divider spans the full row height with a soft fade */
+.splash-divider{
+  position:relative;
+  width:1px;
+  align-self:stretch;
 }
-
-/* Left = logos */
-.splash-left {
-  display: flex;
-  justify-content: center;
-}
-
-/* Right = text/buttons */
-.splash-right {
-  text-align: left;
-}
-
-/* Vertical divider with soft fade (theme-aware) */
-.splash-divider {
-  position: relative;
-  width: 1px;
-  height: clamp(200px, 48vh, 520px);
-  align-self: stretch;
-}
-.splash-divider::before {
-  content: "";
-  position: absolute; inset: 0;
-  background: linear-gradient(
+.splash-divider::before{
+  content:"";
+  position:absolute; left:0; right:0; top:8%; bottom:8%;
+  background:linear-gradient(
     to bottom,
     transparent 0%,
-    var(--splash-divider) 15%,
-    var(--splash-divider) 85%,
+    var(--splash-divider) 20%,
+    var(--splash-divider) 80%,
     transparent 100%
   );
-  border-radius: 999px;
+  border-radius:999px;
 }
 
-/* Mobile: stack, use a horizontal divider, center text */
-@media (max-width: 900px) {
-  .splash-wrap {
+/* Splash page: reduce top padding compared to Bulma's default */
+.splash-section { padding-top: 1.25rem; }  /* desktop */
+@media (max-width: 900px){
+  .splash-section { padding-top: 0.75rem; } /* smaller on phones/tablets */
+}
+
+/* Tablets & phones: stack vertically, center both blocks,
+   and keep equal spacing above/below the divider via row-gap */
+@media (max-width: 900px){
+  .splash-wrap{
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;     /* left, divider, right */
-    text-align: center;
+    grid-template-rows: auto 1px auto;      /* [logo] [divider] [welcome] */
+    place-items: center;                     /* center both axes */
+    row-gap: var(--stack-gap);               /* equal space around divider */
+    margin: 3.5vh auto 0;
   }
-  .splash-right { text-align: center; }
-  .splash-divider {
-    width: 100%;
-    height: 1px;
-    margin: 8px 0 20px;
+
+  /* INVERT ORDER: welcome (row 1), divider (row 2), logo (row 3) */
+  .splash-right{ 
+    grid-row: 1; 
+    justify-self: center; 
+    text-align: center; 
+    max-width: 620px; 
+    padding-block: 0; 
   }
-  .splash-divider::before {
+  .splash-divider{ 
+    grid-row: 2; 
+    width: 100%; 
+    height: 1px; 
+  }
+  .splash-left{ 
+    grid-row: 3; 
+    justify-self: center; 
+  }
+  .splash-logo{ --splash-logo-w: clamp(240px, 42vw, 520px); }
+
+  .splash-divider::before{
+    top: 0; bottom: 0; left: 10%; right: 10%;
     background: linear-gradient(
       to right,
       transparent 0%,
-      var(--splash-divider) 15%,
-      var(--splash-divider) 85%,
+      var(--splash-divider) 20%,
+      var(--splash-divider) 80%,
       transparent 100%
     );
   }
+
+  /* Center and stack the action buttons when vertical */
+  .splash-right .buttons{
+    display: flex;
+    flex-direction: column;    /* stack vertically */
+    align-items: center;       /* center each button */
+    gap: .75rem;
+    justify-content: center;
+  }
+
+  /* Keep buttons sized to their text, not full width */
+  .splash-right .buttons .button{
+    width: max-content;        /* avoids stretching to container width */
+  }  
+
 }
+
+
+
+/* ==========================================================================
+   9) MISC HELPERS
+   -------------------------------------------------------------------------- */
+.navbar .navbar-item { font-weight: 600; }
