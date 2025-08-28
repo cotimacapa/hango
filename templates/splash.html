@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 
 {% block title %}Welcome to Hango{% endblock %}
@@ -19,26 +20,26 @@
 
       <!-- RIGHT: welcome & actions -->
       <div class="splash-right">
-        <h1 class="title">Welcome to Hango</h1>
-        <p class="subtitle">Free daily meals for campus students.</p>
+        <h1 class="title">{% trans "Welcome to Hango" %}</h1>
+        <p class="subtitle">{% trans "Free daily meals for campus students." %}</p>
 
         {% if request.user.is_authenticated %}
           <div class="buttons">
-            <a class="button is-primary is-medium" href="{% url 'menu:list' %}">Open menu</a>
+            <a class="button is-primary is-medium" href="{% url 'menu:list' %}">{% trans "Open menu" %}</a>
             {% if request.user.is_staff %}
-              <a class="button is-light is-medium" href="{% url 'orders:kitchen' %}">Kitchen</a>
+              <a class="button is-light is-medium" href="{% url 'orders:kitchen' %}">{% trans "Kitchen" %}</a>
               <a class="button is-light is-medium" href="/admin/">Admin</a>
             {% endif %}
           </div>
         {% else %}
           <div class="buttons">
             <a class="button is-primary is-medium" href="{% url 'login' %}?next={% url 'menu:list' %}">
-              Sign in to view the menu
+              {% trans "Sign in to view the menu" %}
             </a>
-            <a class="button is-light is-medium" href="/admin/">Staff sign-in</a>
+            <a class="button is-light is-medium" href="/admin/">{% trans "Staff sign-in" %}</a>
           </div>
           <p class="is-size-7 has-text-grey mt-4">
-            Need help? Contact the cafeteria desk during pickup hours.
+            {% trans "Need help? Contact the cafeteria desk during pickup hours." %}
           </p>
         {% endif %}
       </div>

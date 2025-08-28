@@ -1,0 +1,208 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-08-28 16:37-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: .\apps\menu\apps.py:7
+msgid "Menu"
+msgstr "Cardápio"
+
+#: .\apps\menu\models.py:11
+msgid "Category"
+msgstr "Categoria"
+
+#: .\apps\menu\models.py:12
+msgid "Categories"
+msgstr "Categorias"
+
+#: .\apps\menu\models.py:26
+#| msgid "Items"
+msgid "Item"
+msgstr "Itens"
+
+#: .\apps\menu\models.py:27 .\templates\orders\kitchen.html:20
+msgid "Items"
+msgstr "Itens"
+
+#: .\apps\orders\views.py:81
+msgid "Item added to cart."
+msgstr "Item adicionado ao carrinho"
+
+#: .\apps\orders\views.py:91
+msgid "Item removed."
+msgstr "Item removido"
+
+#: .\apps\orders\views.py:99 .\templates\orders\cart.html:31
+msgid "Your cart is empty."
+msgstr "Seu carrinho está vazio"
+
+#: .\templates\base.html:54
+msgid "Hello"
+msgstr "Olá"
+
+#: .\templates\base.html:59
+msgid "Cart"
+msgstr "Carrinho"
+
+#: .\templates\base.html:65 .\templates\splash.html:30
+msgid "Kitchen"
+msgstr "Cozinha"
+
+#: .\templates\base.html:87
+msgid "About Hango"
+msgstr "Sobre o Hango"
+
+#: .\templates\base.html:93
+msgid "Log out"
+msgstr "Sair"
+
+#: .\templates\menu\menu_list.html:5
+msgid "Today's Menu"
+msgstr "Cardápio de Hoje"
+
+#: .\templates\menu\menu_list.html:6
+msgid "Meals are free for students."
+msgstr "Refeições são gratuitas para alunos."
+
+#: .\templates\menu\menu_list.html:13
+msgid "FREE"
+msgstr "GRÁTIS"
+
+#: .\templates\menu\menu_list.html:25
+msgid "Add to cart"
+msgstr "Adicionar ao carrinho"
+
+#: .\templates\menu\menu_list.html:26
+msgid "Add & view cart"
+msgstr "Adicionar e ver carrinho"
+
+#: .\templates\menu\menu_list.html:32
+msgid "No items yet."
+msgstr "Sem itens."
+
+#: .\templates\orders\cart.html:6
+msgid "Meals are free; limits may apply per category each day."
+msgstr "Refeições são gratuitas; limites podem ser aplicados."
+
+#: .\templates\orders\cart.html:23
+msgid "Remove"
+msgstr "Remover"
+
+#: .\templates\orders\cart.html:29 .\templates\orders\checkout.html:3
+#: .\templates\orders\checkout.html:5
+msgid "Checkout"
+msgstr "Retirada"
+
+#: .\templates\orders\checkout.html:6
+msgid "Meals are free; no payment is required."
+msgstr "Refeições são gratuitas."
+
+#: .\templates\orders\checkout.html:10
+msgid "Pickup slot (optional)"
+msgstr ""
+
+#: .\templates\orders\checkout.html:14
+msgid "If blank, pick up ASAP."
+msgstr "Se vazio, retirar logo."
+
+#: .\templates\orders\checkout.html:17 .\templates\orders\kitchen.html:22
+msgid "Notes"
+msgstr "Notas"
+
+#: .\templates\orders\checkout.html:22
+msgid "Place Order"
+msgstr "Fazer pedido"
+
+#: .\templates\orders\kitchen.html:3 .\templates\orders\kitchen.html:9
+msgid "Kitchen Board"
+msgstr "Cozinha"
+
+#: .\templates\orders\kitchen.html:10
+msgid "Today’s orders. Auto-refreshing every 10 seconds."
+msgstr "Pedidos de hoje. Atualizando automaticamente a cada 10 segundos."
+
+#: .\templates\orders\kitchen.html:18
+msgid "When"
+msgstr "Quando"
+
+#: .\templates\orders\kitchen.html:19
+msgid "Student"
+msgstr "Aluno"
+
+#: .\templates\orders\kitchen.html:21
+msgid "Pickup"
+msgstr "Retirada"
+
+#: .\templates\orders\kitchen.html:23
+msgid "Status"
+msgstr "Status"
+
+#: .\templates\orders\kitchen.html:24
+msgid "Actions"
+msgstr "Ações"
+
+#: .\templates\orders\kitchen.html:68
+msgid "No orders so far."
+msgstr "Nenhum pedido até agora."
+
+#: .\templates\orders\success.html:3 .\templates\orders\success.html:5
+msgid "Order placed"
+msgstr "Pedido feito"
+
+#: .\templates\orders\success.html:7
+msgid "Your order"
+msgstr "Seu pedido"
+
+#: .\templates\orders\success.html:7
+msgid "has been created and is currently"
+msgstr "foi criado e está atualmente"
+
+#: .\templates\orders\success.html:8
+msgid "Check"
+msgstr "Veja"
+
+#: .\templates\orders\success.html:8
+msgid "for details (staff only)."
+msgstr "para ver detalhes (apenas administradores)."
+
+#: .\templates\orders\success.html:10
+msgid "Back to menu"
+msgstr "Voltar para o cardápio"
+
+#: .\templates\splash.html:23
+msgid "Welcome to Hango"
+msgstr "Bem-vindo ao Hango"
+
+#: .\templates\splash.html:24
+msgid "Free daily meals for campus students."
+msgstr "Refeições diárias gratuitas para estudantes do campus."
+
+#: .\templates\splash.html:28
+msgid "Open menu"
+msgstr "Abrir cardápio"
+
+#: .\templates\splash.html:37
+msgid "Sign in to view the menu"
+msgstr "Entrar para ver o cardápio"
+
+#: .\templates\splash.html:39
+msgid "Staff sign-in"
+msgstr "Entrar como administrador"
+
+#: .\templates\splash.html:42
+msgid "Need help? Contact the cafeteria desk during pickup hours."
+msgstr "Precisa de ajuda? Entre em contato com a equipe do refeitório."

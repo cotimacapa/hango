@@ -142,6 +142,25 @@ a { color: var(--primary); }
 }
 .logout-form .logout-button:hover { text-decoration: underline; }
 
+/* Compact pill language switch */
+.lang-switch .button {
+  border-radius: 999px;
+  padding: .35rem .65rem;
+  line-height: 1;
+}
+
+/* On colored navbar, ensure contrast for the active chip */
+.navbar.is-primary .lang-switch .button.is-primary{
+  background-color: var(--navbar-active-bg) !important;
+  border-color: transparent !important;
+  color: var(--navbar-text) !important;
+}
+.navbar.is-primary .lang-switch .button.is-light{
+  background: transparent !important;
+  border-color: rgba(255,255,255,.35) !important;
+  color: var(--navbar-text) !important;
+}
+
 /* ==========================================================================
    6) COMPONENTS
    -------------------------------------------------------------------------- */

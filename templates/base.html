@@ -1,5 +1,6 @@
+{% load static i18n %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE|default:'pt-br' }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -50,18 +51,18 @@
         <div class="navbar-start">
           {% if request.user.is_authenticated %}
             <span class="navbar-item is-static">
-              Hello, {{ request.user.first_name|default:request.user.username }}
+              {% trans "Hello" %}, {{ request.user.first_name|default:request.user.username }}
             </span>
 
             <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'cart' %}is-active{% endif %}"
               href="{% url 'orders:cart' %}">
-              Cart ({{ cart_count }})
+              {% trans "Cart" %} ({{ cart_count }})
             </a>
 
             {% if request.user.is_staff %}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'kitchen' %}is-active{% endif %}"
                 href="{% url 'orders:kitchen' %}">
-                Kitchen
+                {% trans "Kitchen" %}
               </a>
 
               {# Use the admin named URL so “active” works reliably #}
@@ -83,15 +84,33 @@
 
           <a class="navbar-item {% if request.resolver_match and request.resolver_match.url_name == 'about' %}is-active{% endif %}"
             href="{% url 'about' %}">
-            About Hango
+            {% trans "About Hango" %}
           </a>
 
           {% if request.user.is_authenticated %}
             <form method="post" action="{% url 'logout' %}" class="navbar-item logout-form">
               {% csrf_token %}<input type="hidden" name="next" value="/" />
-              <button type="submit" class="logout-button">Log out</button>
+              <button type="submit" class="logout-button">{% trans "Log out" %}</button>
             </form>
           {% endif %}
+
+          {% load i18n %}
+
+          <form action="{% url 'set_language' %}" method="post" class="navbar-item p-0 m-0">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <div class="buttons has-addons lang-switch">
+              <button type="submit" name="language" value="pt-br"
+                      class="button is-small {% if LANGUAGE_CODE|slice:":2" == 'pt' %}is-primary{% else %}is-light{% endif %}">
+                PT-BR
+              </button>
+              <button type="submit" name="language" value="en"
+                      class="button is-small {% if LANGUAGE_CODE == 'en' %}is-primary{% else %}is-light{% endif %}">
+                EN
+              </button>
+            </div>
+          </form>
+
         </div>
         
       </div>

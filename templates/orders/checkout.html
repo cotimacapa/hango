@@ -1,23 +1,24 @@
 {% extends 'base.html' %}
-{% block title %}Checkout - Hango{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Checkout" %} - Hango{% endblock %}
 {% block content %}
-<h1 class="title">Checkout</h1>
-<p class="subtitle">Meals are free; no payment is required.</p>
+<h1 class="title">{% trans "Checkout" %}</h1>
+<p class="subtitle">{% trans "Meals are free; no payment is required." %}</p>
 <form method="post" class="box">
   {% csrf_token %}
   <div class="field">
-    <label class="label">Pickup slot (optional)</label>
+    <label class="label">{% trans "Pickup slot (optional)" %}</label>
     <div class="control">
       <input type="datetime-local" name="pickup_slot" class="input">
     </div>
-    <p class="help">If blank, pick up ASAP.</p>
+    <p class="help">{% trans "If blank, pick up ASAP." %}</p>
   </div>
   <div class="field">
-    <label class="label">Notes</label>
+    <label class="label">{% trans "Notes" %}</label>
     <div class="control">
       <textarea name="notes" rows="3" class="textarea" placeholder="Allergies, no onions, etc."></textarea>
     </div>
   </div>
-  <button class="button is-primary">Place Order</button>
+  <button class="button is-primary">{% trans "Place Order" %}</button>
 </form>
 {% endblock %}

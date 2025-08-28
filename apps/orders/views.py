@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST                         # 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from apps.menu.models import Item
 from .models import Order, OrderItem
@@ -77,7 +78,7 @@ def add(request, pk):
 
     cart[str(pk)] = cart.get(str(pk), 0) + 1
     request.session['cart'] = cart
-    messages.success(request, "Item added to cart.")
+    messages.success(request, _("Item added to cart."))
     return redirect('orders:cart')
 
 
@@ -87,7 +88,7 @@ def remove(request, pk):
     if str(pk) in cart:
         del cart[str(pk)]
         request.session['cart'] = cart
-        messages.info(request, "Item removed.")
+        messages.info(request, _("Item removed."))
     return redirect('orders:cart')
 
 
@@ -95,7 +96,7 @@ def remove(request, pk):
 def checkout(request):
     lines = _cart_items(request)
     if not lines:
-        messages.warning(request, "Your cart is empty.")
+        messages.warning(request, _("Your cart is empty."))
         return redirect('menu:list')
 
     # Final server-side enforcement (covers guests who add before logging in)

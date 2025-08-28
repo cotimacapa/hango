@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load static i18n %}
 {% block title %}Cart - Hango{% endblock %}
 {% block content %}
 <h1 class="title">Your Cart</h1>
-<p class="subtitle">Meals are free; limits may apply per category each day.</p>
+<p class="subtitle">{% trans "Meals are free; limits may apply per category each day." %}</p>
 {% if lines %}
 <table class="table is-fullwidth">
   <thead>
@@ -19,14 +20,14 @@
       </td>
       <td>{{ l.qty }}</td>
       <td class="has-text-right">
-        <a class="button is-small is-light" href="{% url 'orders:remove' l.item.id %}">Remove</a>
+        <a class="button is-small is-light" href="{% url 'orders:remove' l.item.id %}">{% trans "Remove" %}</a>
       </td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
-<a class="button is-primary" href="{% url 'orders:checkout' %}">Checkout</a>
+<a class="button is-primary" href="{% url 'orders:checkout' %}">{% trans "Checkout" %}</a>
 {% else %}
-<p>Your cart is empty.</p>
+<p>{% trans "Your cart is empty." %}</p>
 {% endif %}
 {% endblock %}

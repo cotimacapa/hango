@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
-{% block title %}Kitchen Board - Hango{% endblock %}
+{% load static i18n %}
+{% block title %}{% trans "Kitchen Board" %} - Hango{% endblock %}
 {% block content %}
 
 <!-- Auto-refresh every 10s -->
 <script>setTimeout(function(){ location.reload(); }, 10000);</script>
 
-<h1 class="title">Kitchen Board</h1>
-<p class="subtitle">Today’s orders. Auto-refreshing every 10 seconds.</p>
+<h1 class="title">{% trans "Kitchen Board" %}</h1>
+<p class="subtitle">{% trans "Today’s orders. Auto-refreshing every 10 seconds." %}</p>
 
 <div class="box">
   {% if orders %}
@@ -14,13 +15,13 @@
     <thead>
       <tr>
         <th>ID</th>
-        <th>When</th>
-        <th>Student</th>
-        <th>Items</th>
-        <th>Pickup</th>
-        <th>Notes</th>
-        <th>Status</th>
-        <th class="has-text-right">Actions</th>
+        <th>{% trans "When" %}</th>
+        <th>{% trans "Student" %}</th>
+        <th>{% trans "Items" %}</th>
+        <th>{% trans "Pickup" %}</th>
+        <th>{% trans "Notes" %}</th>
+        <th>{% trans "Status" %}</th>
+        <th class="has-text-right">{% trans "Actions" %}</th>
       </tr>
     </thead>
     <tbody>
@@ -64,7 +65,7 @@
     </tbody>
   </table>
   {% else %}
-    <p>No orders today.</p>
+    <p>{% trans "No orders so far." %}</p>
   {% endif %}
 </div>
 {% endblock %}
