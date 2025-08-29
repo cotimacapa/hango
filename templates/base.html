@@ -20,7 +20,7 @@
     </script>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="/static/css/styles.css">
   </head>
   <body>
 
@@ -35,6 +35,23 @@
         <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="Theme" title="Theme">
           <span class="js-theme-icon" aria-hidden="true"></span>
         </a>
+
+        {# NEW: Language switch next to theme toggle on mobile (always, logged-in or not) #}
+        <form action="{% url 'set_language' %}" method="post"
+              class="navbar-item lang-nav p-0 m-0 is-hidden-desktop">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <div class="buttons has-addons">
+            <button type="submit" name="language" value="pt-br"
+                    class="button is-small {% if LANGUAGE_CODE|slice:':2' == 'pt' %}is-primary{% else %}is-light{% endif %}">
+              PT-BR
+            </button>
+            <button type="submit" name="language" value="en"
+                    class="button is-small {% if LANGUAGE_CODE == 'en' %}is-primary{% else %}is-light{% endif %}">
+              EN
+            </button>
+          </div>
+        </form>
 
         {# Show burger only when a user is signed in (so there’s something to open) #}
         {% if request.user.is_authenticated %}
@@ -53,40 +70,47 @@
             </span>
 
             <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'cart' %}is-active{% endif %}"
-               href="{% url 'orders:cart' %}">
+              href="{% url 'orders:cart' %}">
               {% trans "Cart" %} ({{ cart_count }})
             </a>
 
             {% if request.user.is_staff %}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'kitchen' %}is-active{% endif %}"
-                 href="{% url 'orders:kitchen' %}">
+                href="{% url 'orders:kitchen' %}">
                 {% trans "Kitchen" %}
               </a>
 
               {# Use the admin named URL so “active” works reliably #}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'admin' %}is-active{% endif %}"
-                 href="{% url 'admin:index' %}">
+                href="{% url 'admin:index' %}">
                 Admin
               </a>
             {% endif %}
           {% endif %}
         </div>
 
-        <!-- RIGHT edge: Theme → About → Language chips → Log out -->
+        <!-- RIGHT edge: Theme → About → Log out → (Desktop) Language -->
         <div class="navbar-end">
-          <!-- Theme toggle (not a page) -->
+          <!-- Theme toggle (desktop only) -->
           <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="Theme" title="Theme">
             <span class="js-theme-icon" aria-hidden="true"></span>
           </a>
 
-          <!-- About -->
           <a class="navbar-item {% if request.resolver_match and request.resolver_match.url_name == 'about' %}is-active{% endif %}"
-             href="{% url 'about' %}">
+            href="{% url 'about' %}">
             {% trans "About Hango" %}
           </a>
 
-          <!-- Language chips -->
-          <form action="{% url 'set_language' %}" method="post" class="navbar-item p-0 m-0 lang-nav">
+          {% if request.user.is_authenticated %}
+            <form method="post" action="{% url 'logout' %}" class="navbar-item logout-form">
+              {% csrf_token %}<input type="hidden" name="next" value="/" />
+              <button type="submit" class="logout-button">{% trans "Log out" %}</button>
+            </form>
+          {% endif %}
+
+          {# Desktop language switch (hide on touch) #}
+          <form action="{% url 'set_language' %}" method="post"
+                class="navbar-item p-0 m-0 lang-nav is-hidden-touch">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
             <div class="buttons has-addons">
@@ -100,25 +124,14 @@
               </button>
             </div>
           </form>
-
-          <!-- Log out -->
-          {% if request.user.is_authenticated %}
-            <form method="post" action="{% url 'logout' %}" class="navbar-item logout-form">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="/" />
-              <button type="submit" class="logout-button">{% trans "Log out" %}</button>
-            </form>
-          {% endif %}
         </div>
       </div>
     </nav>
 
-    <section class="section">
-      <div class="container">
-        {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
-        {% block content %}{% endblock %}
-      </div>
-    </section>
+    <section class="section"><div class="container">
+      {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+    </div></section>
 
     <script>
       document.addEventListener('DOMContentLoaded', () => {
@@ -147,7 +160,6 @@
 
         const MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>';
         const SUN  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/><g stroke="currentColor" stroke-width="2"><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12"/><path d="M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></g></svg>';
-        // Admin-like "system" icon (half-filled circle)
         const SYSTEM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 5 A7 7 0 1 1 12 19 Z" fill="currentColor"/><path d="M12 5 L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 
         const osMedia = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
@@ -187,6 +199,5 @@
         }));
       })();
     </script>
-
   </body>
 </html>

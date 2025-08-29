@@ -107,6 +107,32 @@ a { color: var(--primary); }
   .navbar .navbar-end { padding-right: 1rem; }
 }
 
+/* Light theme: make language chip outline + text dark on the colored topbar */
+:root[data-theme="light"] .navbar.is-primary .lang-nav .button.is-light {
+  color: #111 !important;
+  border-color: rgba(0,0,0,.45) !important;
+}
+/* Light theme — language pill hover matches navbar item hover */
+:root[data-theme="light"] .navbar.is-primary .lang-nav .button.is-light:hover {
+  background: var(--navbar-hover-bg) !important;     /* same as other topbar items */
+  color: var(--primary-contrast) !important;         /* usually white */
+  border-color: transparent !important;
+}
+
+/* If user is on "auto", mirror light behavior when OS prefers light */
+@media (prefers-color-scheme: light) {
+  :root[data-theme="auto"] .navbar.is-primary .lang-nav .button.is-light {
+    color: #111 !important;
+    border-color: rgba(0,0,0,.45) !important;
+  }
+  :root[data-theme="auto"] .navbar.is-primary .lang-nav .button.is-light:hover {
+    background: var(--navbar-hover-bg) !important;
+    color: var(--primary-contrast) !important;
+    border-color: transparent !important;
+  }
+}
+
+
 /* Mobile (<=1023.98px): items live on surface */
 @media (max-width: 1023.98px) {
   .navbar-menu .navbar-item:hover:not(.is-static),
