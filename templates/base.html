@@ -1,4 +1,5 @@
 {% load static i18n %}
+{% load i18n %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'pt-br' }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
   <head>
@@ -31,8 +32,8 @@
           🍽️ Hango
         </a>
 
-        {# Theme toggle (mobile/tablet, always visible) #}
-        <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="Theme" title="Theme">
+        {# {% trans "Theme" %} toggle (mobile/tablet, always visible) #}
+        <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="{% trans "Theme" %}" title="{% trans "Theme" %}">
           <span class="js-theme-icon" aria-hidden="true"></span>
         </a>
 
@@ -62,7 +63,7 @@
       </div>
 
       <div id="mainNav" class="navbar-menu">
-        <!-- LEFT side (after logo): Hello, Cart, [Kitchen, Admin for staff] -->
+        <!-- LEFT side (after logo): Hello, Cart, [Kitchen, {% trans "Admin" %} for staff] -->
         <div class="navbar-start">
           {% if request.user.is_authenticated %}
             <span class="navbar-item is-static">
@@ -83,16 +84,16 @@
               {# Use the admin named URL so “active” works reliably #}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'admin' %}is-active{% endif %}"
                 href="{% url 'admin:index' %}">
-                Admin
+                {% trans "Admin" %}
               </a>
             {% endif %}
           {% endif %}
         </div>
 
-        <!-- RIGHT edge: Theme → About → Log out → (Desktop) Language -->
+        <!-- RIGHT edge: {% trans "Theme" %} → About → Log out → (Desktop) Language -->
         <div class="navbar-end">
-          <!-- Theme toggle (desktop only) -->
-          <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="Theme" title="Theme">
+          <!-- {% trans "Theme" %} toggle (desktop only) -->
+          <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="{% trans "Theme" %}" title="{% trans "Theme" %}">
             <span class="js-theme-icon" aria-hidden="true"></span>
           </a>
 
@@ -173,7 +174,7 @@
           try { localStorage.setItem(KEY, state); } catch (_) {}
           icons.forEach(el => el.innerHTML = state === 'auto' ? SYSTEM : (eff === 'dark' ? SUN : MOON));
           btns.forEach(el => {
-            const t = 'Theme: ' + label(state);
+            const t = '{% trans "Theme" %}: ' + label(state);
             el.title = t; el.setAttribute('aria-label', t);
           });
         }

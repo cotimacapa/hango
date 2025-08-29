@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load form_extras %}
+{% load i18n %}
 {% block title %}Sign in - Hango{% endblock %}
 {% block content %}
 <div class="columns is-centered">
@@ -9,30 +10,31 @@
       {% if form.errors %}
         <div class="notification is-danger">Please check your username and password.</div>
       {% endif %}
-      <form method="post" id="site-login-form">
+
+      <form method="post" action="{% url 'login' %}">
         {% csrf_token %}
-        <input type="hidden" name="next" value="{{ next|default:'/' }}">
+        {{ form.non_field_errors }}
+
         <div class="field">
-          <label class="label" for="id_username">Username</label>
+          <label class="label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
           <div class="control">
-            {{ form.username|add_class:"input" }}
+            {{ form.username }}
           </div>
+          {{ form.username.errors }}
         </div>
+
         <div class="field">
-          <label class="label" for="id_password">Password</label>
+          <label class="label" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
           <div class="control">
-            {{ form.password|add_class:"input" }}
+            {{ form.password }}
           </div>
+          {{ form.password.errors }}
         </div>
-        <div class="field is-grouped is-justify-content-space-between">
-          <div class="control">
-            <button class="button is-primary">Log in</button>
-          </div>
-          <div class="control">
-            <a class="button is-light" href="/">← Back to Hango</a>
-          </div>
-        </div>
+
+        <button class="button is-primary" type="submit">{% trans "Sign in" %}</button>
       </form>
+
+
       {# Optional links if you enable password reset later:
       <p class="mt-3"><a href="{% url 'password_reset' %}">Forgot password?</a></p>
       #}

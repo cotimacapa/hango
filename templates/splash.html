@@ -28,7 +28,7 @@
             <a class="button is-primary is-medium" href="{% url 'menu:list' %}">{% trans "Open menu" %}</a>
             {% if request.user.is_staff %}
               <a class="button is-light is-medium" href="{% url 'orders:kitchen' %}">{% trans "Kitchen" %}</a>
-              <a class="button is-light is-medium" href="/admin/">Admin</a>
+              <a class="button is-light is-medium" href="/admin/">{% trans "Admin" %}</a>
             {% endif %}
           </div>
         {% else %}

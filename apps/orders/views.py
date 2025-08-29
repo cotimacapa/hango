@@ -117,8 +117,7 @@ def checkout(request):
     if violations:
         msg_lines = []
         for slug, quota, already, adding in violations:
-            msg_lines.append(f"{slug.replace('-', ' ').title()}: limit {quota}/day "
-                             f"(you already have {already} today, trying to add {adding}).")
+            msg_lines.append(_("%(cat)s: limit %(quota)s/day (you already have %(already)s today, trying to add %(adding)s).") % {"cat": slug.replace("-", " ").title(), "quota": quota, "already": already, "adding": adding})
 
 @login_required
 def success(request, order_id):

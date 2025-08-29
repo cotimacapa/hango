@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-28 16:37-0300\n"
+"POT-Creation-Date: 2025-08-29 17:43-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,28 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: .\apps\menu\apps.py:7
+#: .\apps\classes\admin.py:14 .\apps\classes\admin.py:17
+#: .\apps\classes\models.py:13 .\apps\classes\models.py:32
+msgid "Students"
+msgstr "Alunos"
+
+#: .\apps\classes\admin.py:29
+msgid "Only non-staff users can be members."
+msgstr "Apenas não-administradores podem ser membros"
+
+#: .\apps\classes\apps.py:7 .\apps\classes\models.py:24
+msgid "Classes"
+msgstr "Turmas"
+
+#: .\apps\classes\models.py:8
+msgid "Name"
+msgstr "Nome"
+
+#: .\apps\classes\models.py:23
+msgid "Class"
+msgstr "Turma"
+
+#: .\apps\menu\apps.py:7 .\templates\menu\menu_list.html:3
 msgid "Menu"
 msgstr "Cardápio"
 
@@ -29,12 +50,11 @@ msgstr "Categoria"
 msgid "Categories"
 msgstr "Categorias"
 
-#: .\apps\menu\models.py:26
-#| msgid "Items"
+#: .\apps\menu\models.py:26 .\templates\orders\cart.html:11
 msgid "Item"
 msgstr "Itens"
 
-#: .\apps\menu\models.py:27 .\templates\orders\kitchen.html:20
+#: .\apps\menu\models.py:27 .\templates\orders\kitchen.html:21
 msgid "Items"
 msgstr "Itens"
 
@@ -46,27 +66,46 @@ msgstr "Item adicionado ao carrinho"
 msgid "Item removed."
 msgstr "Item removido"
 
-#: .\apps\orders\views.py:99 .\templates\orders\cart.html:31
+#: .\apps\orders\views.py:99
 msgid "Your cart is empty."
 msgstr "Seu carrinho está vazio"
 
-#: .\templates\base.html:54
+#: .\apps\orders\views.py:120
+#, python-format
+msgid ""
+"%(cat)s: limit %(quota)s/day (you already have %(already)s today, trying to "
+"add %(adding)s)."
+msgstr ""
+
+#: .\templates\admin\base_site.html:7 .\templates\base.html:36
+#: .\templates\base.html:93 .\templates\base.html:95 .\templates\base.html:96
+#: .\templates\base.html:177
+msgid "Theme"
+msgstr "Tema"
+
+#: .\templates\base.html:66 .\templates\base.html:87
+#: .\templates\orders\success.html:9 .\templates\splash.html:31
+msgid "Admin"
+msgstr ""
+
+#: .\templates\base.html:70
 msgid "Hello"
 msgstr "Olá"
 
-#: .\templates\base.html:59
+#: .\templates\base.html:75 .\templates\orders\cart.html:4
+#: .\templates\orders\cart.html:6
 msgid "Cart"
 msgstr "Carrinho"
 
-#: .\templates\base.html:65 .\templates\splash.html:30
+#: .\templates\base.html:81 .\templates\splash.html:30
 msgid "Kitchen"
 msgstr "Cozinha"
 
-#: .\templates\base.html:87
+#: .\templates\base.html:102
 msgid "About Hango"
 msgstr "Sobre o Hango"
 
-#: .\templates\base.html:93
+#: .\templates\base.html:108
 msgid "Log out"
 msgstr "Sair"
 
@@ -94,94 +133,100 @@ msgstr "Adicionar e ver carrinho"
 msgid "No items yet."
 msgstr "Sem itens."
 
-#: .\templates\orders\cart.html:6
+#: .\templates\orders\cart.html:7
 msgid "Meals are free; limits may apply per category each day."
 msgstr "Refeições são gratuitas; limites podem ser aplicados."
 
-#: .\templates\orders\cart.html:23
+#: .\templates\orders\cart.html:24
 msgid "Remove"
 msgstr "Remover"
 
-#: .\templates\orders\cart.html:29 .\templates\orders\checkout.html:3
-#: .\templates\orders\checkout.html:5
+#: .\templates\orders\cart.html:30 .\templates\orders\checkout.html:4
+#: .\templates\orders\checkout.html:6
 msgid "Checkout"
 msgstr "Retirada"
 
-#: .\templates\orders\checkout.html:6
+#: .\templates\orders\cart.html:32 .\templates\orders\kitchen.html:4
+#: .\templates\orders\kitchen.html:10
+#, python-format
+msgid "{%% trans "
+msgstr ""
+
+#: .\templates\orders\checkout.html:7
 msgid "Meals are free; no payment is required."
 msgstr "Refeições são gratuitas."
 
-#: .\templates\orders\checkout.html:10
+#: .\templates\orders\checkout.html:11
 msgid "Pickup slot (optional)"
 msgstr ""
 
-#: .\templates\orders\checkout.html:14
+#: .\templates\orders\checkout.html:15
 msgid "If blank, pick up ASAP."
 msgstr "Se vazio, retirar logo."
 
-#: .\templates\orders\checkout.html:17 .\templates\orders\kitchen.html:22
+#: .\templates\orders\checkout.html:18 .\templates\orders\kitchen.html:23
 msgid "Notes"
 msgstr "Notas"
 
-#: .\templates\orders\checkout.html:22
+#: .\templates\orders\checkout.html:23
 msgid "Place Order"
 msgstr "Fazer pedido"
 
-#: .\templates\orders\kitchen.html:3 .\templates\orders\kitchen.html:9
-msgid "Kitchen Board"
-msgstr "Cozinha"
-
-#: .\templates\orders\kitchen.html:10
+#: .\templates\orders\kitchen.html:11
 msgid "Today’s orders. Auto-refreshing every 10 seconds."
 msgstr "Pedidos de hoje. Atualizando automaticamente a cada 10 segundos."
 
-#: .\templates\orders\kitchen.html:18
+#: .\templates\orders\kitchen.html:19
 msgid "When"
 msgstr "Quando"
 
-#: .\templates\orders\kitchen.html:19
+#: .\templates\orders\kitchen.html:20
 msgid "Student"
 msgstr "Aluno"
 
-#: .\templates\orders\kitchen.html:21
+#: .\templates\orders\kitchen.html:22
 msgid "Pickup"
 msgstr "Retirada"
 
-#: .\templates\orders\kitchen.html:23
+#: .\templates\orders\kitchen.html:24
 msgid "Status"
 msgstr "Status"
 
-#: .\templates\orders\kitchen.html:24
+#: .\templates\orders\kitchen.html:25
 msgid "Actions"
 msgstr "Ações"
 
-#: .\templates\orders\kitchen.html:68
+#: .\templates\orders\kitchen.html:69
 msgid "No orders so far."
 msgstr "Nenhum pedido até agora."
 
-#: .\templates\orders\success.html:3 .\templates\orders\success.html:5
+#: .\templates\orders\success.html:4 .\templates\orders\success.html:6
 msgid "Order placed"
 msgstr "Pedido feito"
 
-#: .\templates\orders\success.html:7
+#: .\templates\orders\success.html:8
 msgid "Your order"
 msgstr "Seu pedido"
 
-#: .\templates\orders\success.html:7
+#: .\templates\orders\success.html:8
 msgid "has been created and is currently"
 msgstr "foi criado e está atualmente"
 
-#: .\templates\orders\success.html:8
+#: .\templates\orders\success.html:9
 msgid "Check"
 msgstr "Veja"
 
-#: .\templates\orders\success.html:8
+#: .\templates\orders\success.html:9
 msgid "for details (staff only)."
 msgstr "para ver detalhes (apenas administradores)."
 
-#: .\templates\orders\success.html:10
+#: .\templates\orders\success.html:11
 msgid "Back to menu"
 msgstr "Voltar para o cardápio"
+
+#: .\templates\registration\login.html:34
+msgid "Sign in"
+msgstr "Entrar"
 
 #: .\templates\splash.html:23
 msgid "Welcome to Hango"
@@ -206,3 +251,6 @@ msgstr "Entrar como administrador"
 #: .\templates\splash.html:42
 msgid "Need help? Contact the cafeteria desk during pickup hours."
 msgstr "Precisa de ajuda? Entre em contato com a equipe do refeitório."
+
+#~ msgid "Kitchen Board"
+#~ msgstr "Cozinha"

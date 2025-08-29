@@ -1,9 +1,10 @@
 {% extends "admin/base.html" %}
+{% load i18n %}
 
 {% block extrahead %}
   {{ block.super }}
 
-  <!-- Theme sync with public site -->
+  <!-- {% trans "Theme" %} sync with public site -->
   <script>
   (function () {
     const KEY = 'hango:theme';
