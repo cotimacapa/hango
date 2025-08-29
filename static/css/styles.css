@@ -9,24 +9,22 @@
   --surface: #ffffff;      /* cards, boxes */
   --surface-alt: #f7f7f7;  /* zebra rows, subtle backgrounds */
 
-  --primary: #2F9B46;     /* Light theme default color */
-  --navbar-bg: var(--primary);
-  --navbar-text: #ffffff;
-  --border: #e5e7eb;
-
+  --primary: #2F9B46;               /* Light theme default color */
   --primary-hover: color-mix(in srgb, var(--primary) 92%, black 8%);
   --primary-active: color-mix(in srgb, var(--primary) 85%, black 15%);
   --primary-contrast: #ffffff;
 
-  /* Top bar overlays (desktop) */
+  --navbar-bg: var(--primary);
+  --navbar-text: #ffffff;
   --navbar-hover-bg: var(--primary);
   --navbar-active-bg: var(--primary);
+
+  --border: #e5e7eb;                /* <-- used throughout */
 
   /* Splash */
   --splash-logo-w: clamp(220px, 28vw, 520px);
   --splash-divider: rgba(0, 0, 0, .14);
-  --stack-gap: 24px;   /* equal space above & below divider on small screens */
-
+  --stack-gap: 24px;
 }
 
 :root[data-theme="dark"] {
@@ -37,18 +35,17 @@
   --surface: #171a21;
   --surface-alt: #12151b;
 
-  --primary: #0E2E15;              /* Dark theme default color */
-  --primary-hover: rgba(0 51 45 / 0.8);
-  --navbar-bg: var(--primary);
-  --navbar-text: #e5e7eb;
-  --border: #2a2f3a;
-
+  --primary: #0E2E15;               /* Dark theme default color */
   --primary-hover: color-mix(in srgb, var(--primary) 88%, white 12%);
   --primary-active: color-mix(in srgb, var(--primary) 80%, white 20%);
   --primary-contrast: #ffffff;
 
+  --navbar-bg: var(--primary);
+  --navbar-text: #e5e7eb;
   --navbar-hover-bg: var(--primary-hover);
   --navbar-active-bg: var(--primary-hover);
+
+  --border: #2a2f3a;
 
   --splash-divider: rgba(255, 255, 255, .16);
 }
@@ -85,7 +82,8 @@ a { color: var(--primary); }
    -------------------------------------------------------------------------- */
 /* Desktop (>=1024px): items sit on the colored bar */
 @media (min-width: 1024px) {
-  .navbar.is-primary .navbar-item:hover:not(.is-static),
+  /* EXCLUDE the language item from background tint */
+  .navbar.is-primary .navbar-item:hover:not(.is-static):not(.lang-nav),
   .navbar.is-primary .navbar-link:hover {
     background-color: var(--navbar-hover-bg) !important;
     color: var(--navbar-text) !important;
@@ -96,7 +94,7 @@ a { color: var(--primary); }
     color: var(--navbar-text) !important;
   }
   /* keep icons/text visible on hover/active */
-  .navbar.is-primary .navbar-item:hover:not(.is-static) *,
+  .navbar.is-primary .navbar-item:hover:not(.is-static):not(.lang-nav) *,
   .navbar.is-primary .navbar-link:hover *,
   .navbar.is-primary .navbar-item.is-active *,
   .navbar.is-primary .navbar-link.is-active * {
@@ -104,9 +102,12 @@ a { color: var(--primary); }
     fill: currentColor !important;
     stroke: currentColor !important;
   }
+
+  /* .navbar .navbar-brand { padding-left: 1rem; } */
+  .navbar .navbar-end { padding-right: 1rem; }
 }
 
-/* Mobile (<=1023px): items live on surface */
+/* Mobile (<=1023.98px): items live on surface */
 @media (max-width: 1023.98px) {
   .navbar-menu .navbar-item:hover:not(.is-static),
   .navbar-menu .navbar-link:hover {
@@ -122,43 +123,81 @@ a { color: var(--primary); }
 }
 
 /* ==========================================================================
-   5) NAVBAR — UTILITIES (TOGGLE, GREETING, LOGOUT)
+   5) NAVBAR — UTILITIES (TOGGLE, GREETING, LOGOUT, LANGUAGE)
    -------------------------------------------------------------------------- */
-.theme-toggle {
-  display: inline-flex; align-items: center;
-  padding: 0 .75rem; color: var(--navbar-text); opacity: .9;
-}
-.theme-toggle:hover { opacity: 1; }
-.theme-toggle svg { display: block; }
-.navbar-menu .theme-toggle { color: var(--text); }
+.theme-toggle { display:inline-flex; align-items:center; padding:0 .75rem; color:var(--navbar-text); opacity:.9; }
+.theme-toggle:hover { opacity:1; }
+.theme-toggle svg { display:block; }
+.navbar-menu .theme-toggle { color:var(--text); }
 
-.navbar-item.is-static { cursor: default; pointer-events: none; user-select: none; }
+.navbar-item.is-static { cursor:default; pointer-events:none; user-select:none; }
 .navbar-item.is-static:hover,
-.navbar-item.is-static:focus { background: transparent !important; text-decoration: none; }
+.navbar-item.is-static:focus { background:transparent !important; text-decoration:none; }
 
-.logout-form { padding: 0; }
-.logout-form .logout-button {
-  background: none; border: 0; color: inherit; font: inherit; padding: 0; cursor: pointer;
-}
-.logout-form .logout-button:hover { text-decoration: underline; }
+.logout-form { padding:0; }
+.logout-form .logout-button { background:none; border:0; color:inherit; font:inherit; padding:0; cursor:pointer; }
+.logout-form .logout-button:hover { text-decoration:underline; }
 
-/* Compact pill language switch */
-.lang-switch .button {
-  border-radius: 999px;
-  padding: .35rem .65rem;
+/* ---- Language switch (rectangular chips) ---- */
+/* prevent the whole navbar item from tinting on hover */
+.navbar .navbar-item.lang-nav:hover,
+.navbar .navbar-item.lang-nav:focus { background:transparent !important; }
+
+/* rectangular chips with tight seam */
+.lang-nav .buttons.has-addons .button {
+  border-radius: 4px !important;
+  padding: .38rem .70rem;
   line-height: 1;
+  font-size: .8rem;
+}
+.lang-nav .buttons.has-addons .button:not(:first-child) { margin-left: -1px; }
+.lang-nav .buttons.has-addons .button:first-child {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+.lang-nav .buttons.has-addons .button:last-child {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
 }
 
-/* On colored navbar, ensure contrast for the active chip */
-.navbar.is-primary .lang-switch .button.is-primary{
+/* Topbar (colored) – match other navbar hover/active tokens */
+.navbar.is-primary .lang-nav .button.is-light {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.45);
+  color: var(--navbar-text);
+}
+.navbar.is-primary .lang-nav .button.is-light:hover,
+.navbar.is-primary .lang-nav .button.is-light:focus {
+  background-color: var(--navbar-hover-bg) !important;
+  border-color: transparent !important;
+  color: var(--navbar-text) !important;
+}
+.navbar.is-primary .lang-nav .button.is-primary {
   background-color: var(--navbar-active-bg) !important;
   border-color: transparent !important;
   color: var(--navbar-text) !important;
 }
-.navbar.is-primary .lang-switch .button.is-light{
-  background: transparent !important;
-  border-color: rgba(255,255,255,.35) !important;
+.navbar.is-primary .lang-nav .button.is-primary:hover,
+.navbar.is-primary .lang-nav .button.is-primary:focus {
+  background-color: var(--navbar-active-bg) !important; /* keep steady */
   color: var(--navbar-text) !important;
+}
+
+/* Mobile dropdown (surface context) */
+.navbar-menu .lang-nav .button.is-light {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.navbar-menu .lang-nav .button.is-light:hover,
+.navbar-menu .lang-nav .button.is-light:focus {
+  background: var(--surface-alt) !important;
+  color: var(--text) !important;
+}
+.navbar-menu .lang-nav .button.is-primary {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color:#fff !important;
 }
 
 /* ==========================================================================
@@ -180,18 +219,12 @@ a { color: var(--primary); }
 .table td, .table th { border-color: var(--border) !important; }
 .table tr:nth-child(even) { background: var(--surface-alt); }
 
-/* Buttons (keep Bulma feel, tweak contrasts) */
-.button.is-primary { background-color: var(--primary); border-color: transparent; }
-.button.is-light    { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
-.button.is-dark     { background: #2b2f36; color: #e5e7eb; border: 1px solid #2b2f36; }
-
-/* Buttons (override Bulma so states follow our theme tokens) */
+/* Buttons (override Bulma so states follow our tokens) */
 .button.is-primary {
   background-color: var(--primary) !important;
   border-color: var(--primary) !important;
   color: var(--primary-contrast) !important;
 }
-
 .button.is-primary:hover,
 .button.is-primary.is-hovered,
 .button.is-primary:focus,
@@ -200,7 +233,6 @@ a { color: var(--primary); }
   border-color: var(--primary-hover) !important;
   color: var(--primary-contrast) !important;
 }
-
 .button.is-primary:active,
 .button.is-primary.is-active {
   background-color: var(--primary-active) !important;
@@ -208,35 +240,21 @@ a { color: var(--primary); }
   color: var(--primary-contrast) !important;
 }
 
-/* Keep the “light” variant consistent too (if you use it) */
-.button.is-light.is-primary {
-  background-color: var(--surface-alt) !important;
-  color: var(--text) !important;
-  border: 1px solid var(--border) !important;
-}
-.button.is-light.is-primary:hover,
-.button.is-light.is-primary.is-hovered {
-  filter: brightness(0.98);
-}
-
-
 /* ==========================================================================
    7) SPLASH — LOGO SIZE
    -------------------------------------------------------------------------- */
-:root { --splash-logo-w: clamp(220px, 26vw, 480px); }  /* balanced for wide screens */
+:root { --splash-logo-w: clamp(220px, 26vw, 480px); }
 
 .splash-logo{
   display:block;
   width:var(--splash-logo-w);
   height:auto;
-  margin:0 auto;               /* no extra bottom margin */
+  margin:0 auto;
   image-rendering:auto;
-  filter:drop-shadow(0 1px 0 rgba(0,0,0,.18))
-         drop-shadow(0 8px 28px rgba(0,0,0,.10));
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.18)) drop-shadow(0 8px 28px rgba(0,0,0,.10));
 }
 :root[data-theme="light"] .splash-logo{
-  filter:drop-shadow(0 1px 0 rgba(0,0,0,.28))
-         drop-shadow(0 8px 28px rgba(0,0,0,.12));
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.28)) drop-shadow(0 8px 28px rgba(0,0,0,.12));
 }
 
 /* ==========================================================================
@@ -244,28 +262,27 @@ a { color: var(--primary); }
    -------------------------------------------------------------------------- */
 .splash-wrap{
   display:grid;
-  /* equal-weight columns, fixed 1px divider between them */
   grid-template-columns: minmax(380px,1fr) 1px minmax(460px,1fr);
-  place-items:center;                   /* center both axes for all three cells */
+  place-items:center;
   column-gap: clamp(32px, 6vw, 96px);
   row-gap: 0;
   max-width: 1180px;
   margin: 8vh auto 0;
-  min-height: 62vh;                     /* gives a stable visual center */
+  min-height: 62vh;
 }
 
-.splash-left   { justify-self:end; }    /* logo hugs the divider */
+.splash-left   { justify-self:end; }
 .splash-right  {
   justify-self:start;
   text-align:left;
-  max-width: 560px;                     /* prevents super-wide lines */
-  padding-block: 20px;                  /* equal top/bottom breathing room */
+  max-width: 560px;
+  padding-block: 20px;
 }
 .splash-right .title    { margin: 0 0 .9rem; line-height: 1.12; }
 .splash-right .subtitle { margin: .6rem 0 1.25rem; }
 .splash-right .buttons  { display:flex; flex-wrap:wrap; gap:.75rem; }
 
-/* Divider spans the full row height with a soft fade */
+/* Divider */
 .splash-divider{
   position:relative;
   width:1px;
@@ -274,97 +291,47 @@ a { color: var(--primary); }
 .splash-divider::before{
   content:"";
   position:absolute; left:0; right:0; top:8%; bottom:8%;
-  background:linear-gradient(
-    to bottom,
-    transparent 0%,
-    var(--splash-divider) 20%,
-    var(--splash-divider) 80%,
-    transparent 100%
-  );
+  background:linear-gradient(to bottom, transparent 0%, var(--splash-divider) 20%, var(--splash-divider) 80%, transparent 100%);
   border-radius:999px;
 }
 
-/* Splash page: reduce top padding compared to Bulma's default */
-.splash-section { padding-top: 1.25rem; }  /* desktop */
-@media (max-width: 900px){
-  .splash-section { padding-top: 0.75rem; } /* smaller on phones/tablets */
-}
+/* Splash page: reduce top padding */
+.splash-section { padding-top: 1.25rem; }
+@media (max-width: 900px){ .splash-section { padding-top: 0.75rem; } }
 
-/* Tablets & phones: stack vertically, center both blocks,
-   and keep equal spacing above/below the divider via row-gap */
+/* Mobile: stack & center, equal spacing around divider */
 @media (max-width: 900px){
   .splash-wrap{
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1px auto;      /* [logo] [divider] [welcome] */
-    place-items: center;                     /* center both axes */
-    row-gap: var(--stack-gap);               /* equal space around divider */
+    grid-template-rows: auto 1px auto;
+    place-items: center;
+    row-gap: var(--stack-gap);
     margin: 3.5vh auto 0;
   }
 
-  /* INVERT ORDER: welcome (row 1), divider (row 2), logo (row 3) */
-  .splash-right{ 
-    grid-row: 1; 
-    justify-self: center; 
-    text-align: center; 
-    max-width: 620px; 
-    padding-block: 0; 
-  }
-  .splash-divider{ 
-    grid-row: 2; 
-    width: 100%; 
-    height: 1px; 
-  }
-  .splash-left{ 
-    grid-row: 3; 
-    justify-self: center; 
-  }
+  /* Invert order: welcome (1), divider (2), logo (3) */
+  .splash-right{ grid-row:1; justify-self:center; text-align:center; max-width:620px; padding-block:0; }
+  .splash-divider{ grid-row:2; width:100%; height:1px; }
+  .splash-left{ grid-row:3; justify-self:center; }
   .splash-logo{ --splash-logo-w: clamp(240px, 42vw, 520px); }
 
   .splash-divider::before{
-    top: 0; bottom: 0; left: 10%; right: 10%;
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      var(--splash-divider) 20%,
-      var(--splash-divider) 80%,
-      transparent 100%
-    );
+    top:0; bottom:0; left:10%; right:10%;
+    background: linear-gradient(to right, transparent 0%, var(--splash-divider) 20%, var(--splash-divider) 80%, transparent 100%);
   }
 
-  /* Center and stack the action buttons when vertical */
-  .splash-right .buttons{
-    display: flex;
-    flex-direction: column;    /* stack vertically */
-    align-items: center;       /* center each button */
-    gap: .75rem;
-    justify-content: center;
-  }
-
-  /* Keep buttons sized to their text, not full width */
-  .splash-right .buttons .button{
-    width: max-content;        /* avoids stretching to container width */
-  }  
-
+  /* Stack the action buttons and keep them centered/auto-width */
+  .splash-right .buttons{ flex-direction:column; align-items:center; gap:.75rem; }
+  .splash-right .buttons .button{ width:max-content; }
 }
 
-/* Default: assume dark UI shows white logo */
-.splash-logo--dark  { display: block; }
-.splash-logo--light { display: none; }
-
-/* Light theme: show the dark-ink logo instead */
-:root[data-theme="light"] .splash-logo--dark  { display: none; }
-:root[data-theme="light"] .splash-logo--light { display: block; }
-
-/* “System / Auto”: follow OS preference */
-@media (prefers-color-scheme: light) {
-  :root[data-theme="auto"] .splash-logo--dark  { display: none; }
-  :root[data-theme="auto"] .splash-logo--light { display: block; }
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="auto"] .splash-logo--dark  { display: block; }
-  :root[data-theme="auto"] .splash-logo--light { display: none; }
-}
-
+/* Theme-specific splash logos */
+.splash-logo--dark  { display:block; }
+.splash-logo--light { display:none; }
+:root[data-theme="light"] .splash-logo--dark  { display:none; }
+:root[data-theme="light"] .splash-logo--light { display:block; }
+@media (prefers-color-scheme: light) { :root[data-theme="auto"] .splash-logo--dark  { display:none; } :root[data-theme="auto"] .splash-logo--light { display:block; } }
+@media (prefers-color-scheme: dark)  { :root[data-theme="auto"] .splash-logo--dark  { display:block; } :root[data-theme="auto"] .splash-logo--light { display:none; } }
 
 /* ==========================================================================
    9) MISC HELPERS

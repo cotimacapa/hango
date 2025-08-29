@@ -19,9 +19,8 @@
       })();
     </script>
 
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   </head>
   <body>
 
@@ -47,7 +46,6 @@
 
       <div id="mainNav" class="navbar-menu">
         <!-- LEFT side (after logo): Hello, Cart, [Kitchen, Admin for staff] -->
-
         <div class="navbar-start">
           {% if request.user.is_authenticated %}
             <span class="navbar-item is-static">
@@ -55,53 +53,45 @@
             </span>
 
             <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'cart' %}is-active{% endif %}"
-              href="{% url 'orders:cart' %}">
+               href="{% url 'orders:cart' %}">
               {% trans "Cart" %} ({{ cart_count }})
             </a>
 
             {% if request.user.is_staff %}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'kitchen' %}is-active{% endif %}"
-                href="{% url 'orders:kitchen' %}">
+                 href="{% url 'orders:kitchen' %}">
                 {% trans "Kitchen" %}
               </a>
 
               {# Use the admin named URL so “active” works reliably #}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'admin' %}is-active{% endif %}"
-                href="{% url 'admin:index' %}">
+                 href="{% url 'admin:index' %}">
                 Admin
               </a>
             {% endif %}
           {% endif %}
         </div>
 
-
-        <!-- RIGHT edge: Theme → About → Log out -->
+        <!-- RIGHT edge: Theme → About → Language chips → Log out -->
         <div class="navbar-end">
           <!-- Theme toggle (not a page) -->
           <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="Theme" title="Theme">
             <span class="js-theme-icon" aria-hidden="true"></span>
           </a>
 
+          <!-- About -->
           <a class="navbar-item {% if request.resolver_match and request.resolver_match.url_name == 'about' %}is-active{% endif %}"
-            href="{% url 'about' %}">
+             href="{% url 'about' %}">
             {% trans "About Hango" %}
           </a>
 
-          {% if request.user.is_authenticated %}
-            <form method="post" action="{% url 'logout' %}" class="navbar-item logout-form">
-              {% csrf_token %}<input type="hidden" name="next" value="/" />
-              <button type="submit" class="logout-button">{% trans "Log out" %}</button>
-            </form>
-          {% endif %}
-
-          {% load i18n %}
-
-          <form action="{% url 'set_language' %}" method="post" class="navbar-item p-0 m-0">
+          <!-- Language chips -->
+          <form action="{% url 'set_language' %}" method="post" class="navbar-item p-0 m-0 lang-nav">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <div class="buttons has-addons lang-switch">
+            <div class="buttons has-addons">
               <button type="submit" name="language" value="pt-br"
-                      class="button is-small {% if LANGUAGE_CODE|slice:":2" == 'pt' %}is-primary{% else %}is-light{% endif %}">
+                      class="button is-small {% if LANGUAGE_CODE|slice:':2' == 'pt' %}is-primary{% else %}is-light{% endif %}">
                 PT-BR
               </button>
               <button type="submit" name="language" value="en"
@@ -111,19 +101,26 @@
             </div>
           </form>
 
+          <!-- Log out -->
+          {% if request.user.is_authenticated %}
+            <form method="post" action="{% url 'logout' %}" class="navbar-item logout-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="/" />
+              <button type="submit" class="logout-button">{% trans "Log out" %}</button>
+            </form>
+          {% endif %}
         </div>
-        
       </div>
     </nav>
 
-
-    <section class="section"><div class="container">
-      {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
-      {% block content %}{% endblock %}
-    </div></section>
+    <section class="section">
+      <div class="container">
+        {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
+        {% block content %}{% endblock %}
+      </div>
+    </section>
 
     <script>
-
       document.addEventListener('DOMContentLoaded', () => {
         // BULMA burger: toggle .is-active on both the button and its target
         document.querySelectorAll('.navbar-burger').forEach(burger => {
@@ -191,6 +188,5 @@
       })();
     </script>
 
-    
   </body>
 </html>
