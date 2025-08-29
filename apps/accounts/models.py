@@ -4,6 +4,7 @@ from django.contrib.auth.models import (
     AbstractBaseUser, PermissionsMixin, BaseUserManager
 )
 from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 import re
 
 
@@ -11,19 +12,19 @@ def validate_cpf(value: str):
     """Strict CPF validation (digits only + check digits)."""
     digits = re.sub(r'\D', '', value or '')
     if len(digits) != 11:
-        raise ValidationError("CPF must have 11 digits.")
+        raise ValidationError(_("CPF must have 11 digits."))
     if digits == digits[0] * 11:
-        raise ValidationError("Invalid CPF.")
+        raise ValidationError(_("Invalid CPF."))
     s = sum(int(digits[i]) * (10 - i) for i in range(9))
     d1 = (s * 10) % 11
     d1 = 0 if d1 == 10 else d1
     if d1 != int(digits[9]):
-        raise ValidationError("Invalid CPF.")
+        raise ValidationError(_("Invalid CPF."))
     s = sum(int(digits[i]) * (11 - i) for i in range(10))
     d2 = (s * 10) % 11
     d2 = 0 if d2 == 10 else d2
     if d2 != int(digits[10]):
-        raise ValidationError("Invalid CPF.")
+        raise ValidationError(_("Invalid CPF."))
 
 
 class UserManager(BaseUserManager):
@@ -52,21 +53,38 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    cpf = models.CharField("CPF", max_length=11, unique=True, validators=[validate_cpf])
-    first_name = models.CharField("first name", max_length=150, blank=True)
-    last_name  = models.CharField("last name",  max_length=150, blank=True)
-    email      = models.EmailField("email address", blank=True)
+    cpf        = models.CharField(_("CPF"), max_length=11, unique=True, validators=[validate_cpf])
+    first_name = models.CharField(_("first name"), max_length=150, blank=True)
+    last_name  = models.CharField(_("last name"),  max_length=150, blank=True)
+    email      = models.EmailField(_("email address"), blank=True)
 
-    is_active = models.BooleanField(default=True)
-    is_staff  = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(auto_now_add=True)
+    is_active  = models.BooleanField(_("active"), default=True)
+    is_staff   = models.BooleanField(_("staff status"), default=False)
+    date_joined = models.DateTimeField(_("date joined"), auto_now_add=True)
 
-    # THIS makes CPF the login identifier
+    # CPF is the login identifier
     USERNAME_FIELD = "cpf"
-    REQUIRED_FIELDS: list[str] = []  # add "email" here if you want to require it
+    REQUIRED_FIELDS: list[str] = ["first_name"]
 
     objects = UserManager()
 
-    def __str__(self):
-        name = (self.first_name + " " + self.last_name).strip()
-        return f"{self.cpf}{' — ' + name if name else ''}"
+    class Meta:
+        verbose_name = _("User")
+        verbose_name_plural = _("Users")
+        # (optional) ordering, etc.
+
+    # ---- Friendly display & compatibility ----
+    def get_full_name(self) -> str:
+        name = f"{self.first_name} {self.last_name}".strip()
+        return name or self.cpf
+
+    def get_short_name(self) -> str:
+        return self.first_name or self.cpf
+
+    @property
+    def username(self) -> str:
+        """Compatibility for code/templates expecting .username."""
+        return self.cpf
+
+    def __str__(self) -> str:
+        return self.get_full_name()

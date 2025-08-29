@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% load static i18n %}
 {% load i18n %}
-{% block title %}{% trans "{% trans "Kitchen" %} Board" %} - Hango{% endblock %}
+{% block title %}{% trans "Kitchen Board" %} - Hango{% endblock %}
 {% block content %}
 
 <!-- Auto-refresh every 10s -->
 <script>setTimeout(function(){ location.reload(); }, 10000);</script>
 
-<h1 class="title">{% trans "{% trans "Kitchen" %} Board" %}</h1>
+<h1 class="title">{% trans "Kitchen Board" %}</h1>
 <p class="subtitle">{% trans "Today’s orders. Auto-refreshing every 10 seconds." %}</p>
 
 <div class="box">

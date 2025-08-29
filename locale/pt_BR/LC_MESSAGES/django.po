@@ -7,34 +7,83 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-29 17:43-0300\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2025-08-29 20:22-0300\n"
+"PO-Revision-Date: 2025-08-29 21:15-0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+#: .\apps\accounts\apps.py:8
+msgid "Accounts"
+msgstr "Contas"
+
+#: .\apps\accounts\models.py:15
+msgid "CPF must have 11 digits."
+msgstr "CPF deve ter 11 dígitos."
+
+#: .\apps\accounts\models.py:17 .\apps\accounts\models.py:22
+#: .\apps\accounts\models.py:27
+msgid "Invalid CPF."
+msgstr "CPF inválido."
+
+#: .\apps\accounts\models.py:56
+msgid "CPF"
+msgstr "CPF"
+
+#: .\apps\accounts\models.py:57
+msgid "first name"
+msgstr "primeiro nome"
+
+#: .\apps\accounts\models.py:58
+msgid "last name"
+msgstr "último nome"
+
+#: .\apps\accounts\models.py:59
+msgid "email address"
+msgstr "endereço de e-mail"
+
+#: .\apps\accounts\models.py:61
+msgid "active"
+msgstr "ativo"
+
+#: .\apps\accounts\models.py:62
+msgid "staff status"
+msgstr "status de administrador"
+
+#: .\apps\accounts\models.py:63
+msgid "date joined"
+msgstr "data da criação"
+
+#: .\apps\accounts\models.py:72
+msgid "User"
+msgstr "Usuário"
+
+#: .\apps\accounts\models.py:73
+msgid "Users"
+msgstr "Usuários"
+
 #: .\apps\classes\admin.py:14 .\apps\classes\admin.py:17
-#: .\apps\classes\models.py:13 .\apps\classes\models.py:32
+#: .\apps\classes\models.py:10 .\apps\classes\models.py:29
 msgid "Students"
 msgstr "Alunos"
 
 #: .\apps\classes\admin.py:29
 msgid "Only non-staff users can be members."
-msgstr "Apenas não-administradores podem ser membros"
+msgstr "Apenas não-administradores podem ser membros."
 
-#: .\apps\classes\apps.py:7 .\apps\classes\models.py:24
+#: .\apps\classes\apps.py:7 .\apps\classes\models.py:21
 msgid "Classes"
 msgstr "Turmas"
 
-#: .\apps\classes\models.py:8
+#: .\apps\classes\models.py:6
 msgid "Name"
 msgstr "Nome"
 
-#: .\apps\classes\models.py:23
+#: .\apps\classes\models.py:20
 msgid "Class"
 msgstr "Turma"
 
@@ -52,7 +101,7 @@ msgstr "Categorias"
 
 #: .\apps\menu\models.py:26 .\templates\orders\cart.html:11
 msgid "Item"
-msgstr "Itens"
+msgstr "Item"
 
 #: .\apps\menu\models.py:27 .\templates\orders\kitchen.html:21
 msgid "Items"
@@ -60,22 +109,20 @@ msgstr "Itens"
 
 #: .\apps\orders\views.py:81
 msgid "Item added to cart."
-msgstr "Item adicionado ao carrinho"
+msgstr "Item adicionado ao carrinho."
 
 #: .\apps\orders\views.py:91
 msgid "Item removed."
-msgstr "Item removido"
+msgstr "Item removido."
 
-#: .\apps\orders\views.py:99
+#: .\apps\orders\views.py:99 .\templates\orders\cart.html:32
 msgid "Your cart is empty."
-msgstr "Seu carrinho está vazio"
+msgstr "Seu carrinho está vazio."
 
 #: .\apps\orders\views.py:120
 #, python-format
-msgid ""
-"%(cat)s: limit %(quota)s/day (you already have %(already)s today, trying to "
-"add %(adding)s)."
-msgstr ""
+msgid "%(cat)s: limit %(quota)s/day (you already have %(already)s today, trying to add %(adding)s)."
+msgstr "%(cat)s: limite de %(quota)s/dia (você já tem %(already)s hoje; tentando adicionar %(adding)s)."
 
 #: .\templates\admin\base_site.html:7 .\templates\base.html:36
 #: .\templates\base.html:93 .\templates\base.html:95 .\templates\base.html:96
@@ -86,14 +133,13 @@ msgstr "Tema"
 #: .\templates\base.html:66 .\templates\base.html:87
 #: .\templates\orders\success.html:9 .\templates\splash.html:31
 msgid "Admin"
-msgstr ""
+msgstr "Admin"
 
 #: .\templates\base.html:70
 msgid "Hello"
 msgstr "Olá"
 
 #: .\templates\base.html:75 .\templates\orders\cart.html:4
-#: .\templates\orders\cart.html:6
 msgid "Cart"
 msgstr "Carrinho"
 
@@ -133,6 +179,10 @@ msgstr "Adicionar e ver carrinho"
 msgid "No items yet."
 msgstr "Sem itens."
 
+#: .\templates\orders\cart.html:6
+msgid "Your Cart"
+msgstr "Seu carrinho"
+
 #: .\templates\orders\cart.html:7
 msgid "Meals are free; limits may apply per category each day."
 msgstr "Refeições são gratuitas; limites podem ser aplicados."
@@ -146,19 +196,13 @@ msgstr "Remover"
 msgid "Checkout"
 msgstr "Retirada"
 
-#: .\templates\orders\cart.html:32 .\templates\orders\kitchen.html:4
-#: .\templates\orders\kitchen.html:10
-#, python-format
-msgid "{%% trans "
-msgstr ""
-
 #: .\templates\orders\checkout.html:7
 msgid "Meals are free; no payment is required."
-msgstr "Refeições são gratuitas."
+msgstr "Refeições são gratuitas; nenhum pagamento é necessário."
 
 #: .\templates\orders\checkout.html:11
 msgid "Pickup slot (optional)"
-msgstr ""
+msgstr "Horário de retirada (opcional)"
 
 #: .\templates\orders\checkout.html:15
 msgid "If blank, pick up ASAP."
@@ -171,6 +215,10 @@ msgstr "Notas"
 #: .\templates\orders\checkout.html:23
 msgid "Place Order"
 msgstr "Fazer pedido"
+
+#: .\templates\orders\kitchen.html:4 .\templates\orders\kitchen.html:10
+msgid "Kitchen Board"
+msgstr "Cozinha"
 
 #: .\templates\orders\kitchen.html:11
 msgid "Today’s orders. Auto-refreshing every 10 seconds."
@@ -251,6 +299,3 @@ msgstr "Entrar como administrador"
 #: .\templates\splash.html:42
 msgid "Need help? Contact the cafeteria desk during pickup hours."
 msgstr "Precisa de ajuda? Entre em contato com a equipe do refeitório."
-
-#~ msgid "Kitchen Board"
-#~ msgstr "Cozinha"

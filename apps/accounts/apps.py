@@ -1,6 +1,8 @@
 from django.apps import AppConfig
+from django.utils.translation import gettext_lazy as _
 
 class AccountsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.accounts"   # full Python path to the app package
-    label = "accounts"       # must match references like "accounts.User"
+    name = "apps.accounts"
+    label = "accounts"
+    verbose_name = _("Accounts")  # <-- translatable app name

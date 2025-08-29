@@ -3,7 +3,7 @@
 {% load i18n %}
 {% block title %}{% trans "Cart" %} - Hango{% endblock %}
 {% block content %}
-<h1 class="title">Your {% trans "Cart" %}</h1>
+<h1 class="title">{% trans "Your Cart" %}</h1>
 <p class="subtitle">{% trans "Meals are free; limits may apply per category each day." %}</p>
 {% if lines %}
 <table class="table is-fullwidth">
@@ -29,6 +29,6 @@
 </table>
 <a class="button is-primary" href="{% url 'orders:checkout' %}">{% trans "Checkout" %}</a>
 {% else %}
-<p>{% trans "{% trans "Your cart" %} is empty." %}</p>
+<p>{% trans "Your cart is empty." %}</p>
 {% endif %}
 {% endblock %}
