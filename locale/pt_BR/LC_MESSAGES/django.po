@@ -194,7 +194,7 @@ msgstr "Remover"
 #: .\templates\orders\cart.html:30 .\templates\orders\checkout.html:4
 #: .\templates\orders\checkout.html:6
 msgid "Checkout"
-msgstr "Retirada"
+msgstr "Pedir"
 
 #: .\templates\orders\checkout.html:7
 msgid "Meals are free; no payment is required."
