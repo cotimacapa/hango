@@ -1,0 +1,14 @@
+msgid ""
+msgstr ""
+"Language: pt_BR\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Accounts"
+msgstr "Contas"
+
+msgid "User"
+msgstr "Usuário"
+
+msgid "Users"
+msgstr "Usuários"

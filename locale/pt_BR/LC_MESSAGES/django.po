@@ -299,3 +299,6 @@ msgstr "Entrar como administrador"
 #: .\templates\splash.html:42
 msgid "Need help? Contact the cafeteria desk during pickup hours."
 msgstr "Precisa de ajuda? Entre em contato com a equipe do refeitório."
+
+msgid "day"
+msgstr "dia"

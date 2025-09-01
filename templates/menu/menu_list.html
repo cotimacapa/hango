@@ -13,7 +13,7 @@
           <span class="tag is-success is-light">{% trans "FREE" %}</span>
           {% if i.category %}
             {% if i.category.daily_quota %}
-              <span class="tag is-info is-light">{{ i.category.name }} • {{ i.category.daily_quota }}/day</span>
+              <span class="tag is-info is-light">{{ i.category.name }} • {{ i.category.daily_quota }}/{% trans "day" %}</span>
             {% else %}
               <span class="tag is-light">{{ i.category.name }}</span>
             {% endif %}

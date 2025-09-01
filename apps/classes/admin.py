@@ -9,12 +9,13 @@ from .models import StudentClass
 User = get_user_model()
 
 class StudentClassAdminForm(forms.ModelForm):
-    # Nice dual selector widget (like Groups)
+    # Dual selector like Groups; hide the *outer* label to avoid the dangling "Alunos:"
     members = forms.ModelMultipleChoiceField(
-        label=_("Students"),
+        label="",  # ← hide outer label; widget headings still use the translated label below
         required=False,
         queryset=User.objects.filter(is_staff=False).order_by("first_name", User.USERNAME_FIELD),
         widget=FilteredSelectMultiple(_("Students"), is_stacked=False),
+        help_text="",  # (optional) remove the long “Pressione Control…” help text
     )
 
     class Meta:
@@ -23,7 +24,6 @@ class StudentClassAdminForm(forms.ModelForm):
 
     def clean_members(self):
         qs = self.cleaned_data.get("members")
-        # Final guard so staff/superusers can't be added accidentally
         invalid = qs.filter(is_staff=True) | qs.filter(is_superuser=True)
         if invalid.exists():
             raise forms.ValidationError(_("Only non-staff users can be members."))

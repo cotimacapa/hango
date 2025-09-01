@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Language: pt_BR\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Classes"
+msgstr "Turmas"
+
+msgid "Class"
+msgstr "Turma"
+
+msgid "Name"
+msgstr "Nome"
+
+msgid "Students"
+msgstr "Alunos"

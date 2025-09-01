@@ -11,7 +11,7 @@ class StudentClass(models.Model):
         related_name="student_classes",
         blank=True,
         # Change below to limit_choices_to={"groups__name": "Students"}, but create that group first
-        limit_choices_to={"is_staff": False}, 
+        limit_choices_to={"is_staff": False, "groups__name": "Aluno"}, 
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
