@@ -10,6 +10,8 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+from django.contrib.auth.decorators import user_passes_test
 
 from apps.menu.models import Item
 from .models import Order, OrderItem
@@ -173,7 +175,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
     if request.method == "GET":
         if not lines:
-            messages.info(request, _("Your cart is empty."))
+            # Silent redirect; the cart page already communicates empty state.
             return redirect("orders:cart")
         return render(
             request,
@@ -182,29 +184,12 @@ def checkout(request: HttpRequest) -> HttpResponse:
         )
 
     if not lines:
-        messages.warning(request, _("There are no items to checkout."))
+        # Avoid extra message spam; just go back.
         return redirect("orders:cart")
 
-    # Always provide safe defaults for required fields
-    delivery_status = request.POST.get("delivery_status", "pending")
-    status_value = request.POST.get("status", "pending")
-    payment_status = request.POST.get("payment_status", "unpaid")
-    fulfillment_status = request.POST.get("fulfillment_status", "unfulfilled")
-
     with transaction.atomic():
-        order_kwargs = {"user": request.user}
-        model_fields = {f.name for f in Order._meta.get_fields() if getattr(f, "concrete", False)}
-
-        if "status" in model_fields:
-            order_kwargs["status"] = status_value
-        if "delivery_status" in model_fields:
-            order_kwargs["delivery_status"] = delivery_status
-        if "payment_status" in model_fields:
-            order_kwargs["payment_status"] = payment_status
-        if "fulfillment_status" in model_fields:
-            order_kwargs["fulfillment_status"] = fulfillment_status
-
-        order = Order.objects.create(**order_kwargs)
+        # Model defaults (status, delivery_status, service_day) handle required fields.
+        order = Order.objects.create(user=request.user)
 
         for l in lines:
             try:
@@ -233,11 +218,11 @@ def success(request: HttpRequest, order_id: int) -> HttpResponse:
 def kitchen_board(request: HttpRequest) -> HttpResponse:
     try:
         return render(request, "orders/kitchen.html", {
-            "orders": Order.objects.all().order_by("-created_at")[:100],
+            "orders": Order.objects.filter(service_day=timezone.localdate()).order_by("-created_at")[:200],
         })
     except Exception:
         return HttpResponse("Kitchen board", content_type="text/plain")
-
+    
 
 @require_http_methods(["POST", "GET"])
 @login_required
@@ -247,3 +232,30 @@ def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpR
     order.save(update_fields=["status"])
     messages.success(request, _("Order status updated."))
     return redirect("orders:kitchen")
+
+@require_http_methods(["POST"])
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> HttpResponse:
+    """
+    Green ✓ sets delivery_status='delivered' and stamps delivered_at/by.
+    Red ✕ sets delivery_status='pending' and clears delivered_at/by.
+    Staff only.
+    """
+    order = get_object_or_404(Order, pk=order_id)
+
+    if state == "delivered":
+        order.delivery_status = "delivered"
+        order.delivered_at = timezone.now()
+        order.delivered_by = request.user
+        msg = _("Marked as delivered.")
+    else:
+        order.delivery_status = "pending"
+        order.delivered_at = None
+        order.delivered_by = None
+        msg = _("Marked as not delivered.")
+
+    order.save(update_fields=["delivery_status", "delivered_at", "delivered_by"])
+    messages.success(request, msg)
+    return redirect("orders:kitchen")
+

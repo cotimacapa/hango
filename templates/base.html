@@ -27,17 +27,14 @@
 
     <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
       <div class="navbar-brand">
-        {# Logo: /menu/ if signed in, splash if not #}
         <a class="navbar-item" href="{% if request.user.is_authenticated %}{% url 'menu:list' %}{% else %}/{% endif %}">
           🍽️ Hango
         </a>
 
-        {# {% trans "Theme" %} toggle (mobile/tablet, always visible) #}
         <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="{% trans "Theme" %}" title="{% trans "Theme" %}">
           <span class="js-theme-icon" aria-hidden="true"></span>
         </a>
 
-        {# NEW: Language switch next to theme toggle on mobile (always, logged-in or not) #}
         <form action="{% url 'set_language' %}" method="post"
               class="navbar-item lang-nav p-0 m-0 is-hidden-desktop">
           {% csrf_token %}
@@ -54,7 +51,6 @@
           </div>
         </form>
 
-        {# Show burger only when a user is signed in (so there’s something to open) #}
         {% if request.user.is_authenticated %}
           <button class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="mainNav" type="button">
             <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
@@ -63,7 +59,6 @@
       </div>
 
       <div id="mainNav" class="navbar-menu">
-        <!-- LEFT side (after logo): Hello, Cart, [Kitchen, {% trans "Admin" %} for staff] -->
         <div class="navbar-start">
           {% if request.user.is_authenticated %}
             <span class="navbar-item is-static">
@@ -81,7 +76,6 @@
                 {% trans "Kitchen" %}
               </a>
 
-              {# Use the admin named URL so “active” works reliably #}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'admin' %}is-active{% endif %}"
                 href="{% url 'admin:index' %}">
                 {% trans "Admin" %}
@@ -90,9 +84,7 @@
           {% endif %}
         </div>
 
-        <!-- RIGHT edge: {% trans "Theme" %} → About → Log out → (Desktop) Language -->
         <div class="navbar-end">
-          <!-- {% trans "Theme" %} toggle (desktop only) -->
           <a class="navbar-item theme-toggle is-hidden-touch" role="button" aria-label="{% trans "Theme" %}" title="{% trans "Theme" %}">
             <span class="js-theme-icon" aria-hidden="true"></span>
           </a>
@@ -109,7 +101,6 @@
             </form>
           {% endif %}
 
-          {# Desktop language switch (hide on touch) #}
           <form action="{% url 'set_language' %}" method="post"
                 class="navbar-item p-0 m-0 lang-nav is-hidden-touch">
             {% csrf_token %}
@@ -130,13 +121,40 @@
     </nav>
 
     <section class="section"><div class="container">
-      {% for message in messages %}<div class="notification is-info">{{ message }}</div>{% endfor %}
+
+      {# Flash messages: iterate (consumes the queue) and auto-dismiss #}
+      {% if messages %}
+        <div id="flash-stack" class="mt-3">
+          {% for message in messages %}
+            <div class="notification is-info flash-msg" role="status" aria-live="polite">
+              {{ message }}
+              <button class="delete" aria-label="{% trans 'Dismiss' %}"></button>
+            </div>
+          {% endfor %}
+        </div>
+        <script>
+          (function () {
+            const msgs = document.querySelectorAll('.flash-msg');
+            msgs.forEach((el, i) => {
+              const btn = el.querySelector('.delete');
+              if (btn) btn.addEventListener('click', () => el.remove());
+              const delay = 3000 + (i * 400);
+              setTimeout(() => {
+                el.style.transition = 'opacity .35s ease, transform .35s ease';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-6px)';
+                setTimeout(() => el.remove(), 380);
+              }, delay);
+            });
+          })();
+        </script>
+      {% endif %}
+
       {% block content %}{% endblock %}
     </div></section>
 
     <script>
       document.addEventListener('DOMContentLoaded', () => {
-        // BULMA burger: toggle .is-active on both the button and its target
         document.querySelectorAll('.navbar-burger').forEach(burger => {
           burger.addEventListener('click', () => {
             const targetId = burger.dataset.target;
@@ -145,17 +163,15 @@
             burger.classList.toggle('is-active');
             if (target) target.classList.toggle('is-active');
 
-            // A11y: reflect state
             const expanded = burger.getAttribute('aria-expanded') === 'true';
             burger.setAttribute('aria-expanded', String(!expanded));
           });
         });
       });
 
-      // Three-state theme toggle (light ↔ dark ↔ system), supports multiple buttons
       (function () {
         const KEY = 'hango:theme';
-        const STATES = ['light', 'dark', 'auto']; // "auto" follows OS
+        const STATES = ['light', 'dark', 'auto'];
         const btns  = document.querySelectorAll('.theme-toggle');
         const icons = document.querySelectorAll('.theme-toggle .js-theme-icon');
 
@@ -174,28 +190,27 @@
           try { localStorage.setItem(KEY, state); } catch (_) {}
           icons.forEach(el => el.innerHTML = state === 'auto' ? SYSTEM : (eff === 'dark' ? SUN : MOON));
           btns.forEach(el => {
-            const t = '{% trans "Theme" %}: ' + label(state);
+            const t = '{% trans "Theme" %}: ' + (state === 'auto' ? 'System' : (state === 'dark' ? 'Dark' : 'Light'));
             el.title = t; el.setAttribute('aria-label', t);
           });
         }
 
-        // Initial state
         let saved = null;
         try { saved = localStorage.getItem(KEY); } catch (_) {}
         if (!saved) saved = 'auto';
         paint(saved);
 
-        // Follow OS when in 'auto'
         if (osMedia) {
           osMedia.addEventListener('change', () => {
-            const cur = (function(){ try { return localStorage.getItem(KEY); } catch(_) { return 'auto'; } })();
-            if (cur === 'auto') paint('auto');
+            try {
+              if ((localStorage.getItem(KEY) || 'auto') === 'auto') paint('auto');
+            } catch (_) { paint('auto'); }
           });
         }
 
-        // Click handlers for all toggles
         btns.forEach(btn => btn.addEventListener('click', () => {
-          const cur = (function(){ try { return localStorage.getItem(KEY); } catch(_) { return 'auto'; } })() || 'auto';
+          let cur = 'auto';
+          try { cur = localStorage.getItem(KEY) || 'auto'; } catch (_) {}
           paint(next(cur));
         }));
       })();

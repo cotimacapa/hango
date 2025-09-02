@@ -22,6 +22,7 @@
         <th>{% trans "Pickup" %}</th>
         <th>{% trans "Notes" %}</th>
         <th>{% trans "Status" %}</th>
+        <th>{% trans "Delivery" %}</th>
         <th class="has-text-right">{% trans "Actions" %}</th>
       </tr>
     </thead>
@@ -46,20 +47,30 @@
             {{ o.get_status_display }}
           </span>
         </td>
+        <td>
+          {% if o.delivery_status == 'delivered' %}
+            <span class="tag is-success">{% trans "Delivered" %}</span>
+          {% else %}
+            <span class="tag is-warning">{% trans "Pending" %}</span>
+          {% endif %}
+        </td>
         <td class="has-text-right">
-          <div class="buttons are-small is-right">
-            {% for to,label in ACTIONS.o.status %}
-            <form method="post" action="{% url 'orders:update_status' o.id to %}" style="display:inline;">
-              {% csrf_token %}
-              <button class="button
-                {% if to == 'ready' %}is-primary{% elif to == 'preparing' %}is-info
-                {% elif to == 'picked_up' %}is-success{% elif to == 'canceled' %}is-danger
-                {% else %}is-light{% endif %}">
-                {{ label }}
-              </button>
-            </form>
-            {% empty %}<span class="has-text-grey">—</span>{% endfor %}
-          </div>
+          {% if request.user.is_staff %}
+            <div class="buttons are-small is-right">
+              <!-- Green ✓ = delivered -->
+              <form method="post" action="{% url 'orders:deliver' o.id 'delivered' %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="button is-success" title="{% trans 'Mark delivered' %}">✓</button>
+              </form>
+              <!-- Red ✕ = pending / not delivered -->
+              <form method="post" action="{% url 'orders:deliver' o.id 'pending' %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="button is-danger" title="{% trans 'Mark not delivered' %}">✕</button>
+              </form>
+            </div>
+          {% else %}
+            <span class="has-text-grey">—</span>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
