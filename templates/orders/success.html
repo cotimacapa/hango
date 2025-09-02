@@ -1,14 +1,19 @@
-{% extends 'base.html' %}
-{% load static i18n %}
+{% extends "base.html" %}
 {% load i18n %}
+
 {% block title %}{% trans "Order placed" %} - Hango{% endblock %}
+
 {% block content %}
-<article class="message is-success"><div class="message-header"><p>{% trans "Order placed" %}</p></div>
-<div class="message-body">
-<p>{% trans "Your order" %} <strong>#{{ order.id }}</strong> {% trans "has been created and is currently" %} <strong>{{ order.get_status_display }}</strong>.</p>
-<p>{% trans "Check" %} <a href="/admin/">{% trans "Admin" %}</a> {% trans "for details (staff only)." %}</p>
-</div></article>
-<a class="button" href="{% url 'menu:list' %}">{% trans "Back to menu" %}</a>
+  <section class="section">
+    <h1 class="title">{% trans "Order placed!" %}</h1>
+    <p class="subtitle">
+      {% trans "Thank you. Your order has been placed." %}
+      {% if order_id %}{% trans "Order ID" %}: <strong>#{{ order_id }}</strong>{% endif %}
+    </p>
 
+    <div class="buttons mt-4">
+      <a class="button is-primary" href="{% url 'menu:list' %}">{% trans "Back to menu" %}</a>
+      <a class="button" href="{% url 'orders:cart' %}">{% trans "Go to cart" %}</a>
+    </div>
+  </section>
 {% endblock %}
-

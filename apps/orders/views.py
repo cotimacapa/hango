@@ -1,197 +1,249 @@
-from collections import Counter
-import datetime
+from __future__ import annotations
 
-from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required       # NEW
-from django.views.decorators.http import require_POST                         # NEW
-from django.shortcuts import render, redirect, get_object_or_404
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
 from django.contrib import messages
-from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect, render, get_object_or_404
+from django.utils.translation import gettext as _
+from django.views.decorators.http import require_http_methods
 
 from apps.menu.models import Item
 from .models import Order, OrderItem
-from .forms import CheckoutForm
 
 
-def _cart_items(request):
-    cart = request.session.get('cart', {})
-    item_ids = [int(k) for k in cart.keys()]
-    items = Item.objects.filter(id__in=item_ids).select_related("category")
-    lines = []
-    for it in items:
-        qty = cart.get(str(it.id), 0)
-        lines.append({"item": it, "qty": qty})
+# ---------------------------------------------------------------------
+# Session-cart helpers
+# ---------------------------------------------------------------------
+
+@dataclass
+class CartLine:
+    key: str
+    name: str
+    price: float
+    qty: int
+
+    @property
+    def subtotal(self) -> float:
+        return float(self.price) * int(self.qty)
+
+
+def _get_session_cart(request: HttpRequest) -> Dict[str, Dict[str, Any]]:
+    data = request.session.get("cart")
+    if isinstance(data, dict):
+        return data
+    return {}
+
+
+def _save_session_cart(request: HttpRequest, cart: Dict[str, Dict[str, Any]]) -> None:
+    request.session["cart"] = cart
+    request.session.modified = True
+
+
+def _cart_lines(request: HttpRequest) -> List[CartLine]:
+    """
+    Build CartLine[] from session cart in either shape:
+      A) {"<id>": {"name": str, "price": float, "qty": int}}
+      B) {"<id>": <qty int>}
+    Falls back to Item lookup for name/price if payload is int.
+    """
+    raw = _get_session_cart(request)
+    lines: List[CartLine] = []
+
+    for key, payload in raw.items():
+        name = str(key)
+        price = 0.0
+        qty = 0
+
+        if isinstance(payload, dict):
+            name = str(payload.get("name", name))
+            try:
+                price = float(payload.get("price", 0.0))
+            except Exception:
+                price = 0.0
+            try:
+                qty = int(payload.get("qty", 0))
+            except Exception:
+                qty = 0
+        else:
+            try:
+                qty = int(payload)
+            except Exception:
+                qty = 0
+            try:
+                item = Item.objects.filter(pk=int(key)).first()
+                if item:
+                    name = getattr(item, "name", name)
+                    price = float(getattr(item, "price", 0.0))
+            except Exception:
+                pass
+
+        if qty <= 0:
+            continue
+
+        lines.append(CartLine(key=str(key), name=name, price=price, qty=qty))
+
     return lines
 
 
-def _user_counts_today(user):
-    """Counts items by category for all non-canceled orders created today."""
-    counts = Counter()
-    if not user.is_authenticated:
-        return counts
-    start = timezone.localdate()
-    start_dt = timezone.make_aware(datetime.datetime.combine(start, datetime.time.min))
-    end_dt = timezone.make_aware(datetime.datetime.combine(start, datetime.time.max))
-    qs = OrderItem.objects.select_related("item__category").filter(
-        order__user=user,
-        order__created_at__range=(start_dt, end_dt)
-    ).exclude(order__status="canceled")
-    for oi in qs:
-        cat = getattr(getattr(oi.item, "category", None), "slug", None)
-        if cat:
-            counts[cat] += oi.qty
-    return counts
+def _cart_totals(lines: List[CartLine]) -> Tuple[int, float]:
+    total_qty = sum(l.qty for l in lines)
+    total_price = sum(l.subtotal for l in lines)
+    return total_qty, float(total_price)
 
 
-def _cart_counts(cart):
-    """Counts items by category in the current cart."""
-    counts = Counter()
-    item_ids = [int(k) for k in cart.keys()]
-    for it in Item.objects.filter(id__in=item_ids).select_related("category"):
-        if it.category:
-            counts[it.category.slug] += cart.get(str(it.id), 0)
-    return counts
+def _clear_session_cart(request: HttpRequest) -> None:
+    if "cart" in request.session:
+        request.session["cart"] = {}
+        request.session.modified = True
 
 
+# ---------------------------------------------------------------------
+# Cart views
+# ---------------------------------------------------------------------
+
+@require_http_methods(["GET"])
 @login_required
-def view_cart(request):
-    lines = _cart_items(request)
-    return render(request, 'orders/cart.html', {"lines": lines})
+def view_cart(request: HttpRequest) -> HttpResponse:
+    lines = _cart_lines(request)
+    return render(request, "orders/cart.html", {"lines": lines})
 
 
+@require_http_methods(["POST", "GET"])
 @login_required
-def add(request, pk):
-    item = get_object_or_404(Item, pk=pk, is_active=True)
-    cart = request.session.get('cart', {})
-    # If we know the user and the item has a quota, check before adding
-    if request.user.is_authenticated and item.category and item.category.daily_quota:
-        current = _user_counts_today(request.user) + _cart_counts(cart)
-        used = current[item.category.slug]
-        if used + 1 > item.category.daily_quota:
-            messages.warning(
-                request,
-                f"Daily limit reached for {item.category.name} "
-                f"({item.category.daily_quota} per day)."
-            )
-            return redirect('orders:cart')
+def add(request: HttpRequest, pk: int) -> HttpResponse:
+    _ = Item.objects.filter(pk=pk).first()
+    cart = _get_session_cart(request)
+    key = str(pk)
+    entry = cart.get(key)
 
-    cart[str(pk)] = cart.get(str(pk), 0) + 1
-    request.session['cart'] = cart
-    messages.success(request, _("Item added to cart."))
-    return redirect('orders:cart')
+    if isinstance(entry, dict):
+        entry["qty"] = int(entry.get("qty", 0)) + 1
+        cart[key] = entry
+    elif entry is not None:
+        cart[key] = int(entry) + 1
+    else:
+        cart[key] = 1
+
+    _save_session_cart(request, cart)
+    messages.success(request, _("Added to cart."))
+    return redirect("orders:cart")
 
 
+@require_http_methods(["POST", "GET"])
 @login_required
-def remove(request, pk):
-    cart = request.session.get('cart', {})
-    if str(pk) in cart:
-        del cart[str(pk)]
-        request.session['cart'] = cart
-        messages.info(request, _("Item removed."))
-    return redirect('orders:cart')
+def remove(request: HttpRequest, pk: int) -> HttpResponse:
+    cart = _get_session_cart(request)
+    key = str(pk)
+
+    if key in cart:
+        entry = cart[key]
+        if isinstance(entry, dict):
+            new_qty = int(entry.get("qty", 0)) - 1
+            if new_qty <= 0:
+                cart.pop(key, None)
+            else:
+                entry["qty"] = new_qty
+                cart[key] = entry
+        else:
+            new_qty = int(entry) - 1
+            if new_qty <= 0:
+                cart.pop(key, None)
+            else:
+                cart[key] = new_qty
+
+        _save_session_cart(request, cart)
+        messages.info(request, _("Removed from cart."))
+
+    return redirect("orders:cart")
 
 
+# ---------------------------------------------------------------------
+# Checkout
+# ---------------------------------------------------------------------
+
+@require_http_methods(["GET", "POST"])
 @login_required
-def checkout(request):
-    lines = _cart_items(request)
+def checkout(request: HttpRequest) -> HttpResponse:
+    lines = _cart_lines(request)
+    total_qty, total_price = _cart_totals(lines)
+
+    if request.method == "GET":
+        if not lines:
+            messages.info(request, _("Your cart is empty."))
+            return redirect("orders:cart")
+        return render(
+            request,
+            "orders/checkout.html",
+            {"lines": lines, "total_qty": total_qty, "total_price": total_price},
+        )
+
     if not lines:
-        messages.warning(request, _("Your cart is empty."))
-        return redirect('menu:list')
+        messages.warning(request, _("There are no items to checkout."))
+        return redirect("orders:cart")
 
-    # Final server-side enforcement (covers guests who add before logging in)
-    cart = request.session.get('cart', {})
-    have = _user_counts_today(request.user)
-    need = _cart_counts(cart)
+    # Always provide safe defaults for required fields
+    delivery_status = request.POST.get("delivery_status", "pending")
+    status_value = request.POST.get("status", "pending")
+    payment_status = request.POST.get("payment_status", "unpaid")
+    fulfillment_status = request.POST.get("fulfillment_status", "unfulfilled")
 
-    # Look up quotas for categories present in cart
-    from apps.menu.models import Category  # local import to avoid circulars
-    quotas = {c.slug: c.daily_quota for c in Category.objects.all() if c.daily_quota}
+    with transaction.atomic():
+        order_kwargs = {"user": request.user}
+        model_fields = {f.name for f in Order._meta.get_fields() if getattr(f, "concrete", False)}
 
-    violations = []
-    for slug, qty in need.items():
-        quota = quotas.get(slug)
-        if quota and (have.get(slug, 0) + qty) > quota:
-            violations.append((slug, quota, have.get(slug, 0), qty))
+        if "status" in model_fields:
+            order_kwargs["status"] = status_value
+        if "delivery_status" in model_fields:
+            order_kwargs["delivery_status"] = delivery_status
+        if "payment_status" in model_fields:
+            order_kwargs["payment_status"] = payment_status
+        if "fulfillment_status" in model_fields:
+            order_kwargs["fulfillment_status"] = fulfillment_status
 
-    if violations:
-        msg_lines = []
-        for slug, quota, already, adding in violations:
-            msg_lines.append(_("%(cat)s: limit %(quota)s/day (you already have %(already)s today, trying to add %(adding)s).") % {"cat": slug.replace("-", " ").title(), "quota": quota, "already": already, "adding": adding})
+        order = Order.objects.create(**order_kwargs)
 
+        for l in lines:
+            try:
+                item_obj = Item.objects.get(pk=int(l.key))
+            except (Item.DoesNotExist, ValueError):
+                item_obj = None
+            OrderItem.objects.create(order=order, item=item_obj, qty=l.qty)
+
+    _clear_session_cart(request)
+    messages.success(request, _("Order placed successfully."))
+    return redirect("orders:success", order_id=order.pk)
+
+
+@require_http_methods(["GET"])
 @login_required
-def success(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    return render(request, 'orders/success.html', {'order': order})
-
-@staff_member_required
-def kitchen_board(request):
-    """
-    Today's orders with quick status actions, sorted by status then time.
-    Template can auto-refresh periodically.
-    """
-    start = timezone.localdate()
-    start_dt = timezone.make_aware(datetime.datetime.combine(start, datetime.time.min))
-    end_dt = timezone.make_aware(datetime.datetime.combine(start, datetime.time.max))
-
-    orders_qs = (
-        Order.objects
-        .filter(created_at__range=(start_dt, end_dt))
-        .exclude(status='canceled')
-        .select_related('user')
-        .prefetch_related('lines__item')
-        .order_by('created_at')
-    )
-
-    status_rank = {'pending': 0, 'paid': 1, 'preparing': 2, 'ready': 3, 'picked_up': 4}
-    orders = sorted(orders_qs, key=lambda o: (status_rank.get(o.status, 99), o.created_at))
-
-    actions_map = {
-        'pending':   [('preparing', 'Start'), ('ready', 'Ready'), ('canceled', 'Cancel')],
-        'paid':      [('preparing', 'Start'), ('ready', 'Ready'), ('canceled', 'Cancel')],
-        'preparing': [('ready', 'Ready'), ('canceled', 'Cancel')],
-        'ready':     [('picked_up', 'Picked up'), ('canceled', 'Cancel')],
-        'picked_up': [],
-        'canceled':  [],
-    }
-
-    rows = [{'order': o, 'actions': actions_map.get(o.status, [])} for o in orders]
-
-    # Provide both 'rows' (preferred) and 'orders'/'ACTIONS' for compatibility
-    return render(request, 'orders/kitchen.html', {
-        'rows': rows,
-        'orders': orders,
-        'ACTIONS': actions_map,
-        'now': timezone.now(),
-    })
+def success(request: HttpRequest, order_id: int) -> HttpResponse:
+    return render(request, "orders/success.html", {"order_id": order_id})
 
 
-@staff_member_required
-@require_POST
-def update_status(request, order_id, new_status):
-    """Validate state transition and save."""
-    new_status = (new_status or '').lower()
-    valid = dict(Order.STATUS)
-    order = get_object_or_404(Order, id=order_id)
+# ---------------------------------------------------------------------
+# Kitchen / status
+# ---------------------------------------------------------------------
 
-    if new_status not in valid:
-        messages.error(request, "Invalid status.")
-        return redirect('orders:kitchen')
+@require_http_methods(["GET"])
+@login_required
+def kitchen_board(request: HttpRequest) -> HttpResponse:
+    try:
+        return render(request, "orders/kitchen.html", {
+            "orders": Order.objects.all().order_by("-created_at")[:100],
+        })
+    except Exception:
+        return HttpResponse("Kitchen board", content_type="text/plain")
 
-    allowed = {
-        'pending':   {'preparing', 'ready', 'canceled', 'paid'},
-        'paid':      {'preparing', 'ready', 'canceled'},
-        'preparing': {'ready', 'canceled'},
-        'ready':     {'picked_up', 'canceled'},
-        'picked_up': set(),
-        'canceled':  set(),
-    }.get(order.status, set())
 
-    if new_status not in allowed:
-        messages.warning(request, f"Cannot change {order.get_status_display()} → {valid[new_status]}.")
-        return redirect('orders:kitchen')
-
+@require_http_methods(["POST", "GET"])
+@login_required
+def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpResponse:
+    order = get_object_or_404(Order, pk=order_id)
     order.status = new_status
-    order.save(update_fields=['status'])
-    messages.success(request, f"Order #{order.id} → {order.get_status_display()}")
-    return redirect('orders:kitchen')
+    order.save(update_fields=["status"])
+    messages.success(request, _("Order status updated."))
+    return redirect("orders:kitchen")

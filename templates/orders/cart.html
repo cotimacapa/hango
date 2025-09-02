@@ -1,34 +1,59 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static i18n %}
-{% load i18n %}
+
 {% block title %}{% trans "Cart" %} - Hango{% endblock %}
+
 {% block content %}
-<h1 class="title">{% trans "Your Cart" %}</h1>
-<p class="subtitle">{% trans "Meals are free; limits may apply per category each day." %}</p>
-{% if lines %}
-<table class="table is-fullwidth">
-  <thead>
-    <tr><th>{% trans "Item" %}</th><th style="width: 120px;">Qty</th><th></th></tr>
-  </thead>
-  <tbody>
-  {% for l in lines %}
-    <tr>
-      <td>
-        {{ l.item.name }}
-        {% if l.item.category %}
-          <span class="tag is-light is-small ml-2">{{ l.item.category.name }}</span>
-        {% endif %}
-      </td>
-      <td>{{ l.qty }}</td>
-      <td class="has-text-right">
-        <a class="button is-small is-light" href="{% url 'orders:remove' l.item.id %}">{% trans "Remove" %}</a>
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-<a class="button is-primary" href="{% url 'orders:checkout' %}">{% trans "Checkout" %}</a>
-{% else %}
-<p>{% trans "Your cart is empty." %}</p>
-{% endif %}
+  <h1 class="title">{% trans "Your Cart" %}</h1>
+  <p class="subtitle">{% trans "Meals are free; limits may apply per category each day." %}</p>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="notification is-info">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if lines %}
+    <table class="table is-fullwidth">
+      <thead>
+        <tr>
+          <th>{% trans "Item" %}</th>
+          <th class="has-text-right">{% trans "Qty" %}</th>
+          <th class="has-text-right">{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lines %}
+          <tr>
+            <td>
+              {# Prefer l.item.name if your context provides it; fallback to l.name #}
+              {{ l.item.name|default:l.name }}
+              {% if l.item.category %}
+                <span class="tag is-light is-small ml-2">{{ l.item.category.name }}</span>
+              {% endif %}
+            </td>
+            <td class="has-text-right">{{ l.qty }}</td>
+            <td class="has-text-right">
+              {# If your remove view expects pk of the Item, pass l.item.id; else fallback to l.key #}
+              <a class="button is-small is-light"
+                 href="{% url 'orders:remove' l.item.id|default:l.key %}">
+                {% trans "Remove" %}
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="is-flex is-justify-content-space-between is-align-items-center mt-4">
+      <a class="button" href="{% url 'menu:list' %}">{% trans "Back to menu" %}</a>
+      <form method="post" action="{% url 'orders:checkout' %}">
+        {% csrf_token %}
+        <button type="submit" class="button is-primary">{% trans "Checkout" %}</button>
+      </form>
+    </div>
+  {% else %}
+    <p>{% trans "Your cart is empty." %}</p>
+    <a class="button" href="{% url 'menu:list' %}">{% trans "Browse menu" %}</a>
+  {% endif %}
 {% endblock %}

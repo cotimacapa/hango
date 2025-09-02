@@ -1,25 +1,73 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static i18n %}
-{% load i18n %}
+
 {% block title %}{% trans "Checkout" %} - Hango{% endblock %}
+
 {% block content %}
-<h1 class="title">{% trans "Checkout" %}</h1>
-<p class="subtitle">{% trans "Meals are free; no payment is required." %}</p>
-<form method="post" class="box">
-  {% csrf_token %}
-  <div class="field">
-    <label class="label">{% trans "Pickup slot (optional)" %}</label>
-    <div class="control">
-      <input type="datetime-local" name="pickup_slot" class="input">
-    </div>
-    <p class="help">{% trans "If blank, pick up ASAP." %}</p>
-  </div>
-  <div class="field">
-    <label class="label">{% trans "Notes" %}</label>
-    <div class="control">
-      <textarea name="notes" rows="3" class="textarea" placeholder="Allergies, no onions, etc."></textarea>
-    </div>
-  </div>
-  <button class="button is-primary">{% trans "Place Order" %}</button>
-</form>
+  <h1 class="title">{% trans "Checkout" %}</h1>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="notification is-info">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if lines %}
+    <table class="table is-fullwidth">
+      <thead>
+        <tr>
+          <th>{% trans "Item" %}</th>
+          <th class="has-text-right">{% trans "Qty" %}</th>
+          <th class="has-text-right">{% trans "Price" %}</th>
+          <th class="has-text-right">{% trans "Subtotal" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lines %}
+          <tr>
+            <td>{{ l.name }}</td>
+            <td class="has-text-right">{{ l.qty }}</td>
+            <td class="has-text-right">{{ l.price }}</td>
+            <td class="has-text-right">{{ l.subtotal }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="3" class="has-text-right">{% trans "Total items" %}</th>
+          <th class="has-text-right">{{ total_qty }}</th>
+        </tr>
+        <tr>
+          <th colspan="3" class="has-text-right">{% trans "Total" %}</th>
+          <th class="has-text-right">{{ total_price }}</th>
+        </tr>
+      </tfoot>
+    </table>
+
+    <form method="post" action="{% url 'orders:checkout' %}">
+      {% csrf_token %}
+
+      {# --- Hidden defaults to satisfy NOT NULL status fields on Order --- #}
+      <input type="hidden" name="delivery_status" value="pending">
+      <input type="hidden" name="status" value="pending">
+      <input type="hidden" name="payment_status" value="unpaid">
+      <input type="hidden" name="fulfillment_status" value="unfulfilled">
+
+      {# Optional free-text notes (kept minimal and unobtrusive) #}
+      <div class="field mt-4">
+        <label class="label" for="notes">{% trans "Notes (optional)" %}</label>
+        <div class="control">
+          <textarea class="textarea" id="notes" name="notes" rows="2" placeholder="{% trans 'Any delivery/pickup notes' %}"></textarea>
+        </div>
+      </div>
+
+      <div class="buttons mt-4">
+        <a class="button is-light" href="{% url 'orders:cart' %}">{% trans "Back to cart" %}</a>
+        <button type="submit" class="button is-success">{% trans "Place order" %}</button>
+      </div>
+    </form>
+  {% else %}
+    <p>{% trans "Your cart is empty." %}</p>
+    <a class="button" href="{% url 'orders:cart' %}">{% trans "Go to cart" %}</a>
+  {% endif %}
 {% endblock %}
