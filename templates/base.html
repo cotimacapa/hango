@@ -76,6 +76,12 @@
                 {% trans "Kitchen" %}
               </a>
 
+              <!-- 🔹 New Orders link -->
+              <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'list' %}is-active{% endif %}"
+                href="{% url 'orders:list' %}">
+                {% trans "Orders" %}
+              </a>
+
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'admin' %}is-active{% endif %}"
                 href="{% url 'admin:index' %}">
                 {% trans "Admin" %}

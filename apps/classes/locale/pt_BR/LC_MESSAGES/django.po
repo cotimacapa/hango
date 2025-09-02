@@ -1,17 +1,28 @@
 msgid ""
 msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-02 17:00-0300\n"
 "Language: pt_BR\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+#: .\apps\classes\admin.py:17 .\apps\classes\models.py:10
+#: .\apps\classes\models.py:29
+msgid "Students"
+msgstr "Alunos"
+
+#: .\apps\classes\admin.py:29
+msgid "Only non-staff users can be members."
+msgstr ""
+
+#: .\apps\classes\apps.py:8 .\apps\classes\models.py:21
 msgid "Classes"
 msgstr "Turmas"
 
-msgid "Class"
-msgstr "Turma"
-
+#: .\apps\classes\models.py:6
 msgid "Name"
 msgstr "Nome"
 
-msgid "Students"
-msgstr "Alunos"
+#: .\apps\classes\models.py:20
+msgid "Class"
+msgstr "Turma"

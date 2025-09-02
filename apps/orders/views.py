@@ -12,6 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.contrib.auth.decorators import user_passes_test
+from django.contrib.admin.views.decorators import staff_member_required
 
 from apps.menu.models import Item
 from .models import Order, OrderItem
@@ -259,3 +260,10 @@ def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> Http
     messages.success(request, msg)
     return redirect("orders:kitchen")
 
+@staff_member_required
+def orders_list(request):
+    """
+    Temporary placeholder view for Orders (Pedidos).
+    """
+    from django.http import HttpResponse
+    return HttpResponse("<h1>Orders Page</h1><p>This will list all today's orders.</p>")
