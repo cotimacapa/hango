@@ -40,7 +40,6 @@ class Order(models.Model):
     )
     service_day = models.DateField("Dia de atendimento", default=timezone.localdate)
     pickup_slot = models.DateTimeField("Horário de retirada", null=True, blank=True)
-    notes = models.TextField("Observações", blank=True)
     created_at = models.DateTimeField("Criado em", default=timezone.now)
     delivered_at = models.DateTimeField("Entregue em", null=True, blank=True)
     delivered_by = models.ForeignKey(

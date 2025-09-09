@@ -19,10 +19,16 @@
                 {% endif %}
                 <span class="tag is-success">GRÁTIS</span>
               </div>
-              <footer class="card-footer">
-                <a href="{% url 'orders:add' item.id %}" class="card-footer-item">Adicionar ao carrinho</a>
-                <a href="{% url 'orders:cart' %}" class="card-footer-item">Ver carrinho</a>
-              </footer>
+              <div class="card-content">
+                <div class="buttons">
+                  <a href="{% url 'orders:add' item.id %}" class="button is-small is-primary">
+                    Adicionar ao carrinho
+                  </a>
+                  <a href="{% url 'orders:cart' %}" class="button is-small is-light">
+                    Ver carrinho
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         {% endfor %}
@@ -32,3 +38,4 @@
     {% endif %}
   {% endwith %}
 {% endblock %}
+      
