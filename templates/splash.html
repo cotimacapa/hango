@@ -27,15 +27,13 @@
             <a class="button is-primary is-medium" href="{% url 'menu:list' %}">Abrir cardápio</a>
             {% if request.user.is_staff %}
               <a class="button is-light is-medium" href="{% url 'orders:kitchen' %}">Cozinha</a>
-              <a class="button is-light is-medium" href="/admin/">Admin</a>
             {% endif %}
           </div>
         {% else %}
           <div class="buttons">
-            <a class="button is-primary is-medium" href="{% url 'login' %}?next={% url 'menu:list' %}">
-              Entrar para ver o cardápio
+            <a class="button is-primary is-medium" href="{% url 'login' %}">
+              Entrar
             </a>
-            <a class="button is-light is-medium" href="/admin/">Entrar como administrador</a>
           </div>
           <p class="is-size-7 has-text-grey mt-4">
             Precisa de ajuda? Entre em contato com a equipe do refeitório durante o horário de retirada.

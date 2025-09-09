@@ -31,10 +31,13 @@
           {{ form.password.errors }}
         </div>
 
+        <!-- Always send user through the post-login router -->
+        <input type="hidden" name="next" value="{% url 'post_login_redirect' %}">
+
         <button class="button is-primary" type="submit">Entrar</button>
       </form>
 
-      {# Links opcionais, se habilitar recuperação de senha depois:
+      {# Optional password reset link:
       <p class="mt-3"><a href="{% url 'password_reset' %}">Esqueci minha senha</a></p>
       #}
     </div>

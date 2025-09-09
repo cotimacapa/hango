@@ -6,30 +6,29 @@
   <h1 class="title">Cardápio de Hoje</h1>
   <p class="subtitle">Refeições são gratuitas para alunos.</p>
 
-  {% if object_list %}
-    <div class="columns is-multiline">
-      {% for item in object_list %}
-        <div class="column is-one-quarter">
-          <div class="card">
-            <div class="card-content">
-              <p class="title is-5">{{ item.name }}</p>
-              <p class="subtitle is-6">{{ item.category }}</p>
-
-              {% if item.price == 0 %}
+  {% with items_list=object_list|default:items %}
+    {% if items_list %}
+      <div class="columns is-multiline">
+        {% for item in items_list %}
+          <div class="column is-one-quarter">
+            <div class="card">
+              <div class="card-content">
+                <p class="title is-5">{{ item.name }}</p>
+                {% if item.category %}
+                  <p class="subtitle is-6">{{ item.category }}</p>
+                {% endif %}
                 <span class="tag is-success">GRÁTIS</span>
-              {% else %}
-                <span class="tag is-info">R$ {{ item.price }}</span>
-              {% endif %}
+              </div>
+              <footer class="card-footer">
+                <a href="{% url 'orders:add' item.id %}" class="card-footer-item">Adicionar ao carrinho</a>
+                <a href="{% url 'orders:cart' %}" class="card-footer-item">Ver carrinho</a>
+              </footer>
             </div>
-            <footer class="card-footer">
-              <a href="{% url 'orders:add' item.id %}" class="card-footer-item">Adicionar ao carrinho</a>
-              <a href="{% url 'orders:cart' %}" class="card-footer-item">Adicionar e ver carrinho</a>
-            </footer>
           </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="has-text-grey">Nenhum item no cardápio ainda.</p>
-  {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="has-text-grey">Nenhum item no cardápio ainda.</p>
+    {% endif %}
+  {% endwith %}
 {% endblock %}
