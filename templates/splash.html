@@ -7,6 +7,7 @@
 <section class="section splash-section">
   <div class="container">
     <div class="splash-wrap">
+
       <!-- LEFT: logos -->
       <div class="splash-left">
         <img class="splash-logo splash-logo--dark"
@@ -19,10 +20,21 @@
 
       <!-- RIGHT: welcome & actions -->
       <div class="splash-right">
+        {% if not request.user.is_authenticated %}
+          <!-- MOBILE-ONLY login button, placed right before the burger -->
+          <a class="navbar-item is-hidden-desktop"
+             href="{% url 'login' %}?next={% url 'post_login_redirect' %}">
+            <span class="button is-primary">Entrar</span>
+          </a>
+        {% endif %}
+
         <h1 class="title">Bem-vindo ao Hango</h1>
         <p class="subtitle">Refeições diárias gratuitas para estudantes do campus.</p>
+        <p class="is-size-7 has-text-grey mt-4">
+          Precisa de ajuda? Entre em contato com a equipe do refeitório durante o horário de retirada.
+        </p>
 
-        {% if request.user.is_authenticated %}
+        <!-- {% if request.user.is_authenticated %}
           <div class="buttons">
             <a class="button is-primary is-medium" href="{% url 'menu:list' %}">Abrir cardápio</a>
             {% if request.user.is_staff %}
@@ -34,10 +46,8 @@
             <a class="button is-primary is-medium" href="{% url 'login' %}">
               Entrar
             </a>
-          </div>
-          <p class="is-size-7 has-text-grey mt-4">
-            Precisa de ajuda? Entre em contato com a equipe do refeitório durante o horário de retirada.
-          </p>
+          </div> -->
+
         {% endif %}
       </div>
     </div>
