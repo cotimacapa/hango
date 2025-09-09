@@ -54,13 +54,14 @@
                  href="{% url 'menu:list' %}">
                 Cardápio
               </a>
+            
+
+              <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'cart' %}is-active{% endif %}"
+                href="{% url 'orders:cart' %}">
+                Carrinho ({{ cart_count }})
+              </a>
             {% endif %}
-
-            <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'cart' %}is-active{% endif %}"
-               href="{% url 'orders:cart' %}">
-              Carrinho ({{ cart_count }})
-            </a>
-
+            
             {% if request.user.is_staff %}
               <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'kitchen' %}is-active{% endif %}"
                  href="{% url 'orders:kitchen' %}">
@@ -138,22 +139,24 @@
       {% block content %}{% endblock %}
     </div></section>
 
+    <!-- REPLACED burger script: robust click delegation -->
     <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.navbar-burger').forEach(burger => {
-          burger.addEventListener('click', () => {
-            const targetId = burger.dataset.target;
-            const target = targetId ? document.getElementById(targetId) : null;
+      document.addEventListener('click', function (e) {
+        const burger = e.target.closest('.navbar-burger');
+        if (!burger) return;
 
-            burger.classList.toggle('is-active');
-            if (target) target.classList.toggle('is-active');
+        const targetId = burger.dataset.target || 'mainNav';
+        const menu = document.getElementById(targetId);
 
-            const expanded = burger.getAttribute('aria-expanded') === 'true';
-            burger.setAttribute('aria-expanded', String(!expanded));
-          });
-        });
+        burger.classList.toggle('is-active');
+        if (menu) menu.classList.toggle('is-active');
+
+        const expanded = burger.getAttribute('aria-expanded') === 'true';
+        burger.setAttribute('aria-expanded', String(!expanded));
       });
+    </script>
 
+    <script>
       (function () {
         const KEY = 'hango:theme';
         const STATES = ['light', 'dark', 'auto'];
