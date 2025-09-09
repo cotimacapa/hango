@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
+from datetime import datetime
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
-from django.utils import timezone
-from django.contrib.auth.decorators import user_passes_test
-from django.contrib.admin.views.decorators import staff_member_required
 
 from apps.menu.models import Item
 from .models import Order, OrderItem
@@ -215,33 +215,48 @@ def success(request: HttpRequest, order_id: int) -> HttpResponse:
 # ---------------------------------------------------------------------
 
 @require_http_methods(["GET"])
-@login_required
+@staff_member_required
 def kitchen_board(request: HttpRequest) -> HttpResponse:
+    """
+    Shows only pending orders for today.
+    """
     try:
-        return render(request, "orders/kitchen.html", {
-            "orders": Order.objects.filter(service_day=timezone.localdate()).order_by("-created_at")[:200],
-        })
+        orders = (
+            Order.objects.filter(
+                service_day=timezone.localdate(),
+                delivery_status="pending",
+            )
+            .select_related("user")
+            .prefetch_related("lines__item")
+            .order_by("-created_at")[:200]
+        )
+        return render(request, "orders/kitchen.html", {"orders": orders})
     except Exception:
         return HttpResponse("Kitchen board", content_type="text/plain")
-    
 
-@require_http_methods(["POST", "GET"])
-@login_required
+
+@require_http_methods(["POST"])
+@staff_member_required
 def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpResponse:
+    """
+    Legacy multi-state handler (kept for now; restrict to staff).
+    Prefer set_delivery_status for the new flow.
+    """
     order = get_object_or_404(Order, pk=order_id)
     order.status = new_status
     order.save(update_fields=["status"])
     messages.success(request, _("Order status updated."))
     return redirect("orders:kitchen")
 
+
 @require_http_methods(["POST"])
-@login_required
-@user_passes_test(lambda u: u.is_staff)
+@staff_member_required
 def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> HttpResponse:
     """
-    Green ✓ sets delivery_status='delivered' and stamps delivered_at/by.
-    Red ✕ sets delivery_status='pending' and clears delivered_at/by.
-    Staff only.
+    Sets delivery status based on a two-button flow:
+      - state == "delivered"   → delivery_status='delivered', stamp delivered_at/by
+      - state == "undelivered" → delivery_status='undelivered', clear delivered_at/by
+    After update, redirect back to Kitchen (the row disappears because it’s no longer pending).
     """
     order = get_object_or_404(Order, pk=order_id)
 
@@ -250,20 +265,51 @@ def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> Http
         order.delivered_at = timezone.now()
         order.delivered_by = request.user
         msg = _("Marked as delivered.")
-    else:
-        order.delivery_status = "pending"
+    elif state == "undelivered":
+        order.delivery_status = "undelivered"
         order.delivered_at = None
         order.delivered_by = None
-        msg = _("Marked as not delivered.")
+        msg = _("Marked as undelivered.")
+    else:
+        messages.error(request, _("Invalid status."))
+        return redirect("orders:kitchen")
 
     order.save(update_fields=["delivery_status", "delivered_at", "delivered_by"])
     messages.success(request, msg)
     return redirect("orders:kitchen")
 
+
+# ---------------------------------------------------------------------
+# Pedidos (Orders) daily list
+# ---------------------------------------------------------------------
+
 @staff_member_required
-def orders_list(request):
+@require_http_methods(["GET"])
+def orders_list(request: HttpRequest) -> HttpResponse:
     """
-    Temporary placeholder view for Orders (Pedidos).
+    Pedidos page: shows all *non-pending* orders for a given day.
+    Default: today. Select another date via ?date=YYYY-MM-DD.
     """
-    from django.http import HttpResponse
-    return HttpResponse("<h1>Orders Page</h1><p>This will list all today's orders.</p>")
+    qdate = request.GET.get("date")
+    if qdate:
+        try:
+            selected_date = datetime.strptime(qdate, "%Y-%m-%d").date()
+        except ValueError:
+            selected_date = timezone.localdate()
+    else:
+        selected_date = timezone.localdate()
+
+    orders = (
+        Order.objects.filter(service_day=selected_date)
+        .exclude(delivery_status="pending")
+        .select_related("user")
+        .prefetch_related("lines__item")
+        .order_by("-created_at")
+    )
+
+    context = {
+        "selected_date": selected_date,
+        "orders": orders,
+        "page_title": _("Orders"),
+    }
+    return render(request, "orders/list.html", context)

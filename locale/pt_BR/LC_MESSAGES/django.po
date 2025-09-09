@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-02 17:00-0300\n"
+"POT-Creation-Date: 2025-09-09 11:42-0300\n"
 "PO-Revision-Date: 2025-08-29 21:15-0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -34,14 +34,14 @@ msgstr "Categorias"
 msgid "Item"
 msgstr "Item"
 
-#: .\apps\menu\models.py:27 .\templates\orders\kitchen.html:21
+#: .\apps\menu\models.py:27 .\templates\orders\kitchen.html:22
+#: .\templates\orders\list.html:30
 msgid "Items"
 msgstr "Itens"
 
 #: .\apps\orders\models.py:9 .\apps\orders\models.py:18
-#: .\templates\orders\kitchen.html:54
 msgid "Pending"
-msgstr ""
+msgstr "Pendente"
 
 #: .\apps\orders\models.py:10
 msgid "Paid"
@@ -49,11 +49,11 @@ msgstr ""
 
 #: .\apps\orders\models.py:11
 msgid "Preparing"
-msgstr ""
+msgstr "Preparando"
 
 #: .\apps\orders\models.py:12
 msgid "Ready"
-msgstr ""
+msgstr "Pronto"
 
 #: .\apps\orders\models.py:13
 #, fuzzy
@@ -63,11 +63,12 @@ msgstr "Retirada"
 
 #: .\apps\orders\models.py:14
 msgid "Canceled"
-msgstr ""
+msgstr "Cancelado"
 
-#: .\apps\orders\models.py:19 .\templates\orders\kitchen.html:52
+#: .\apps\orders\models.py:19 .\templates\orders\kitchen.html:48
+#: .\templates\orders\list.html:50
 msgid "Delivered"
-msgstr ""
+msgstr "Entregue"
 
 #: .\apps\orders\views.py:135
 #, fuzzy
@@ -87,19 +88,30 @@ msgstr "Item adicionado ao carrinho."
 msgid "Order placed successfully."
 msgstr "Pedido feito"
 
-#: .\apps\orders\views.py:234
+#: .\apps\orders\views.py:248
 #, fuzzy
 #| msgid "Order placed"
 msgid "Order status updated."
 msgstr "Pedido feito"
 
-#: .\apps\orders\views.py:252
+#: .\apps\orders\views.py:267
 msgid "Marked as delivered."
 msgstr ""
 
-#: .\apps\orders\views.py:257
-msgid "Marked as not delivered."
+#: .\apps\orders\views.py:272
+msgid "Marked as undelivered."
 msgstr ""
+
+#: .\apps\orders\views.py:274
+#, fuzzy
+#| msgid "Invalid CPF."
+msgid "Invalid status."
+msgstr "CPF inválido."
+
+#: .\apps\orders\views.py:313 .\templates\base.html:82
+#: .\templates\orders\list.html:3 .\templates\orders\list.html:6
+msgid "Orders"
+msgstr "Pedidos"
 
 #: .\templates\admin\base_site.html:7 .\templates\base.html:34
 #: .\templates\base.html:94 .\templates\base.html:199
@@ -117,10 +129,6 @@ msgstr "Carrinho"
 #: .\templates\base.html:76 .\templates\splash.html:30
 msgid "Kitchen"
 msgstr "Cozinha"
-
-#: .\templates\base.html:82
-msgid "Orders"
-msgstr "Pedidos"
 
 #: .\templates\base.html:87 .\templates\splash.html:31
 msgid "Admin"
@@ -178,7 +186,7 @@ msgstr "Refeições são gratuitas; limites podem ser aplicados."
 msgid "Qty"
 msgstr ""
 
-#: .\templates\orders\cart.html:22 .\templates\orders\kitchen.html:26
+#: .\templates\orders\cart.html:22 .\templates\orders\kitchen.html:23
 msgid "Actions"
 msgstr "Ações"
 
@@ -254,43 +262,69 @@ msgid "Kitchen Board"
 msgstr "Cozinha"
 
 #: .\templates\orders\kitchen.html:11
-msgid "Today’s orders. Auto-refreshing every 10 seconds."
+#, fuzzy
+#| msgid "Today’s orders. Auto-refreshing every 10 seconds."
+msgid "Today’s pending orders. Auto-refreshes every 10 seconds."
 msgstr "Pedidos de hoje. Atualizando automaticamente a cada 10 segundos."
 
-#: .\templates\orders\kitchen.html:19
+#: .\templates\orders\kitchen.html:20 .\templates\orders\list.html:28
 msgid "When"
 msgstr "Quando"
 
-#: .\templates\orders\kitchen.html:20
+#: .\templates\orders\kitchen.html:21 .\templates\orders\list.html:29
 msgid "Student"
 msgstr "Aluno"
 
-#: .\templates\orders\kitchen.html:22
-msgid "Pickup"
-msgstr "Retirada"
+#: .\templates\orders\kitchen.html:30 .\templates\orders\list.html:39
+msgid "ago"
+msgstr ""
 
-#: .\templates\orders\kitchen.html:23
-msgid "Notes"
-msgstr "Notas"
+#: .\templates\orders\kitchen.html:46 .\templates\orders\kitchen.html:47
+msgid "Mark as delivered"
+msgstr ""
 
-#: .\templates\orders\kitchen.html:24
+#: .\templates\orders\kitchen.html:55 .\templates\orders\kitchen.html:56
+msgid "Mark as undelivered"
+msgstr ""
+
+#: .\templates\orders\kitchen.html:57 .\templates\orders\list.html:52
+msgid "Undelivered"
+msgstr ""
+
+#: .\templates\orders\kitchen.html:71
+#, fuzzy
+#| msgid "No orders so far."
+msgid "No pending orders for today."
+msgstr "Nenhum pedido até agora."
+
+#: .\templates\orders\kitchen.html:77
+msgid "Go to Orders (today)"
+msgstr ""
+
+#: .\templates\orders\list.html:7
+msgid "Daily list of delivered/undelivered orders."
+msgstr ""
+
+#: .\templates\orders\list.html:9
+msgid "Filter by date"
+msgstr ""
+
+#: .\templates\orders\list.html:12
+msgid "Select date"
+msgstr ""
+
+#: .\templates\orders\list.html:17
+msgid "Filter"
+msgstr ""
+
+#: .\templates\orders\list.html:31
 msgid "Status"
 msgstr "Status"
 
-#: .\templates\orders\kitchen.html:25
-msgid "Delivery"
-msgstr ""
-
-#: .\templates\orders\kitchen.html:63
-msgid "Mark delivered"
-msgstr ""
-
-#: .\templates\orders\kitchen.html:68
-msgid "Mark not delivered"
-msgstr ""
-
-#: .\templates\orders\kitchen.html:80
-msgid "No orders so far."
+#: .\templates\orders\list.html:62
+#, fuzzy
+#| msgid "No orders so far."
+msgid "No orders for this date."
 msgstr "Nenhum pedido até agora."
 
 #: .\templates\orders\success.html:4
@@ -341,14 +375,17 @@ msgstr "Entrar como administrador"
 msgid "Need help? Contact the cafeteria desk during pickup hours."
 msgstr "Precisa de ajuda? Entre em contato com a equipe do refeitório."
 
+#~ msgid "Pickup"
+#~ msgstr "Retirada"
+
+#~ msgid "Notes"
+#~ msgstr "Notas"
+
 #~ msgid "Accounts"
 #~ msgstr "Contas"
 
 #~ msgid "CPF must have 11 digits."
 #~ msgstr "CPF deve ter 11 dígitos."
-
-#~ msgid "Invalid CPF."
-#~ msgstr "CPF inválido."
 
 #~ msgid "CPF"
 #~ msgstr "CPF"
