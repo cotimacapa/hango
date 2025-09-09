@@ -1,35 +1,35 @@
 {% extends 'base.html' %}
-{% load i18n %}
-{% block title %}{% trans "Menu" %} - Hango{% endblock %}
+{% load static %}
+{% block title %}Cardápio - Hango{% endblock %}
+
 {% block content %}
-<h1 class="title">{% trans "Today's Menu" %}</h1>
-<p class="subtitle">{% trans "Meals are free for students." %}</p>
-<div class="columns is-multiline">
-  {% for i in items %}
-  <div class="column is-4">
-    <div class="card">
-      <div class="card-content">
-        <div class="mb-2">
-          <span class="tag is-success is-light">{% trans "FREE" %}</span>
-          {% if i.category %}
-            {% if i.category.daily_quota %}
-              <span class="tag is-info is-light">{{ i.category.name }} • {{ i.category.daily_quota }}/{% trans "day" %}</span>
-            {% else %}
-              <span class="tag is-light">{{ i.category.name }}</span>
-            {% endif %}
-          {% endif %}
+  <h1 class="title">Cardápio de Hoje</h1>
+  <p class="subtitle">Refeições são gratuitas para alunos.</p>
+
+  {% if object_list %}
+    <div class="columns is-multiline">
+      {% for item in object_list %}
+        <div class="column is-one-quarter">
+          <div class="card">
+            <div class="card-content">
+              <p class="title is-5">{{ item.name }}</p>
+              <p class="subtitle is-6">{{ item.category }}</p>
+
+              {% if item.price == 0 %}
+                <span class="tag is-success">GRÁTIS</span>
+              {% else %}
+                <span class="tag is-info">R$ {{ item.price }}</span>
+              {% endif %}
+            </div>
+            <footer class="card-footer">
+              <a href="{% url 'orders:add' item.id %}" class="card-footer-item">Adicionar ao carrinho</a>
+              <a href="{% url 'orders:cart' %}" class="card-footer-item">Adicionar e ver carrinho</a>
+            </footer>
+          </div>
         </div>
-        <p class="title is-5">{{ i.name }}</p>
-        {% if i.description %}<p>{{ i.description }}</p>{% endif %}
-        <div class="mt-3">
-          <a class="button is-link" href="{% url 'menu:add_to_cart' i.id %}">{% trans "Add to cart" %}</a>
-          <a class="button" href="{% url 'orders:add' i.id %}">{% trans "Add & view cart" %}</a>
-        </div>
-      </div>
+      {% endfor %}
     </div>
-  </div>
-  {% empty %}
-  <p>{% trans "No items yet." %}</p>
-  {% endfor %}
-</div>
+  {% else %}
+    <p class="has-text-grey">Nenhum item no cardápio ainda.</p>
+  {% endif %}
 {% endblock %}

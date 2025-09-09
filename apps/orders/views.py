@@ -11,7 +11,6 @@ from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
-from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
 from apps.menu.models import Item
@@ -48,10 +47,10 @@ def _save_session_cart(request: HttpRequest, cart: Dict[str, Dict[str, Any]]) ->
 
 def _cart_lines(request: HttpRequest) -> List[CartLine]:
     """
-    Build CartLine[] from session cart in either shape:
+    Constrói CartLine[] a partir do carrinho em sessão em dois formatos:
       A) {"<id>": {"name": str, "price": float, "qty": int}}
       B) {"<id>": <qty int>}
-    Falls back to Item lookup for name/price if payload is int.
+    Se o payload for int, busca nome/preço em Item.
     """
     raw = _get_session_cart(request)
     lines: List[CartLine] = []
@@ -132,7 +131,7 @@ def add(request: HttpRequest, pk: int) -> HttpResponse:
         cart[key] = 1
 
     _save_session_cart(request, cart)
-    messages.success(request, _("Added to cart."))
+    messages.success(request, "Adicionado ao carrinho.")
     return redirect("orders:cart")
 
 
@@ -159,7 +158,7 @@ def remove(request: HttpRequest, pk: int) -> HttpResponse:
                 cart[key] = new_qty
 
         _save_session_cart(request, cart)
-        messages.info(request, _("Removed from cart."))
+        messages.info(request, "Removido do carrinho.")
 
     return redirect("orders:cart")
 
@@ -176,7 +175,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
     if request.method == "GET":
         if not lines:
-            # Silent redirect; the cart page already communicates empty state.
+            # Redireciona silenciosamente; a página do carrinho já informa vazio.
             return redirect("orders:cart")
         return render(
             request,
@@ -185,11 +184,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
         )
 
     if not lines:
-        # Avoid extra message spam; just go back.
+        # Evita mensagens extras; apenas volta.
         return redirect("orders:cart")
 
     with transaction.atomic():
-        # Model defaults (status, delivery_status, service_day) handle required fields.
+        # Defaults do modelo lidam com campos obrigatórios.
         order = Order.objects.create(user=request.user)
 
         for l in lines:
@@ -200,7 +199,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
             OrderItem.objects.create(order=order, item=item_obj, qty=l.qty)
 
     _clear_session_cart(request)
-    messages.success(request, _("Order placed successfully."))
+    messages.success(request, "Pedido realizado com sucesso.")
     return redirect("orders:success", order_id=order.pk)
 
 
@@ -218,7 +217,7 @@ def success(request: HttpRequest, order_id: int) -> HttpResponse:
 @staff_member_required
 def kitchen_board(request: HttpRequest) -> HttpResponse:
     """
-    Shows only pending orders for today.
+    Mostra apenas pedidos pendentes do dia.
     """
     try:
         orders = (
@@ -232,20 +231,20 @@ def kitchen_board(request: HttpRequest) -> HttpResponse:
         )
         return render(request, "orders/kitchen.html", {"orders": orders})
     except Exception:
-        return HttpResponse("Kitchen board", content_type="text/plain")
+        return HttpResponse("Cozinha", content_type="text/plain")
 
 
 @require_http_methods(["POST"])
 @staff_member_required
 def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpResponse:
     """
-    Legacy multi-state handler (kept for now; restrict to staff).
-    Prefer set_delivery_status for the new flow.
+    Manipulador legado multi-estado (mantido por ora; restrito a staff).
+    Prefira set_delivery_status no fluxo novo.
     """
     order = get_object_or_404(Order, pk=order_id)
     order.status = new_status
     order.save(update_fields=["status"])
-    messages.success(request, _("Order status updated."))
+    messages.success(request, "Status do pedido atualizado.")
     return redirect("orders:kitchen")
 
 
@@ -253,10 +252,10 @@ def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpR
 @staff_member_required
 def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> HttpResponse:
     """
-    Sets delivery status based on a two-button flow:
-      - state == "delivered"   → delivery_status='delivered', stamp delivered_at/by
-      - state == "undelivered" → delivery_status='undelivered', clear delivered_at/by
-    After update, redirect back to Kitchen (the row disappears because it’s no longer pending).
+    Define o status de entrega via dois botões:
+      - state == "delivered"   → delivery_status='delivered', registra delivered_at/by
+      - state == "undelivered" → delivery_status='undelivered', limpa delivered_at/by
+    Depois redireciona para a Cozinha (a linha some por não estar mais pendente).
     """
     order = get_object_or_404(Order, pk=order_id)
 
@@ -264,14 +263,14 @@ def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> Http
         order.delivery_status = "delivered"
         order.delivered_at = timezone.now()
         order.delivered_by = request.user
-        msg = _("Marked as delivered.")
+        msg = "Marcado como entregue."
     elif state == "undelivered":
         order.delivery_status = "undelivered"
         order.delivered_at = None
         order.delivered_by = None
-        msg = _("Marked as undelivered.")
+        msg = "Marcado como não entregue."
     else:
-        messages.error(request, _("Invalid status."))
+        messages.error(request, "Status inválido.")
         return redirect("orders:kitchen")
 
     order.save(update_fields=["delivery_status", "delivered_at", "delivered_by"])
@@ -287,8 +286,8 @@ def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> Http
 @require_http_methods(["GET"])
 def orders_list(request: HttpRequest) -> HttpResponse:
     """
-    Pedidos page: shows all *non-pending* orders for a given day.
-    Default: today. Select another date via ?date=YYYY-MM-DD.
+    Página de Pedidos: mostra todos os pedidos *não pendentes* em um dia.
+    Padrão: hoje. Selecione outra data via ?date=YYYY-MM-DD.
     """
     qdate = request.GET.get("date")
     if qdate:
@@ -310,6 +309,6 @@ def orders_list(request: HttpRequest) -> HttpResponse:
     context = {
         "selected_date": selected_date,
         "orders": orders,
-        "page_title": _("Orders"),
+        "page_title": "Pedidos",
     }
     return render(request, "orders/list.html", context)

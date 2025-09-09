@@ -1,19 +1,17 @@
-{% extends "base.html" %}
-{% load i18n %}
-
-{% block title %}{% trans "Order placed" %} - Hango{% endblock %}
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Pedido realizado - Hango{% endblock %}
 
 {% block content %}
-  <section class="section">
-    <h1 class="title">{% trans "Order placed!" %}</h1>
-    <p class="subtitle">
-      {% trans "Thank you. Your order has been placed." %}
-      {% if order_id %}{% trans "Order ID" %}: <strong>#{{ order_id }}</strong>{% endif %}
-    </p>
+  <h1 class="title">Pedido realizado!</h1>
+  <p class="subtitle">Obrigado. Seu pedido foi registrado com sucesso.</p>
 
-    <div class="buttons mt-4">
-      <a class="button is-primary" href="{% url 'menu:list' %}">{% trans "Back to menu" %}</a>
-      <a class="button" href="{% url 'orders:cart' %}">{% trans "Go to cart" %}</a>
-    </div>
-  </section>
+  <div class="box">
+    <p><strong>ID do pedido:</strong> #{{ order_id }}</p>
+  </div>
+
+  <div class="buttons mt-4">
+    <a class="button is-light" href="{% url 'menu:list' %}">Voltar para o cardápio</a>
+    <a class="button is-primary" href="{% url 'orders:cart' %}">Ir para o carrinho</a>
+  </div>
 {% endblock %}

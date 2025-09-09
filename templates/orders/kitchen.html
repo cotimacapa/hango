@@ -1,14 +1,13 @@
 {% extends 'base.html' %}
-{% load static i18n %}
-{% load i18n %}
-{% block title %}{% trans "Kitchen Board" %} - Hango{% endblock %}
+{% load static %}
+{% block title %}Cozinha - Hango{% endblock %}
 {% block content %}
 
-<!-- Auto-refresh every 10s -->
+<!-- Atualiza automaticamente a cada 10s -->
 <script>setTimeout(function(){ location.reload(); }, 10000);</script>
 
-<h1 class="title">{% trans "Kitchen Board" %}</h1>
-<p class="subtitle">{% trans "Today’s pending orders. Auto-refreshes every 10 seconds." %}</p>
+<h1 class="title">Cozinha</h1>
+<p class="subtitle">Pedidos pendentes de hoje. Atualiza automaticamente a cada 10 segundos.</p>
 
 <div class="box">
   {% if orders %}
@@ -17,17 +16,17 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>{% trans "When" %}</th>
-            <th>{% trans "Student" %}</th>
-            <th>{% trans "Items" %}</th>
-            <th class="has-text-right">{% trans "Actions" %}</th>
+            <th>Quando</th>
+            <th>Aluno</th>
+            <th>Itens</th>
+            <th class="has-text-right">Ações</th>
           </tr>
         </thead>
         <tbody>
           {% for o in orders %}
             <tr>
               <td>#{{ o.id }}</td>
-              <td title="{{ o.created_at }}">{{ o.created_at|timesince }} {% trans "ago" %}</td>
+              <td title="{{ o.created_at }}">{{ o.created_at|timesince }} atrás</td>
               <td>{{ o.user.get_full_name|default:o.user.username }}</td>
               <td>
                 {% for li in o.lines.all %}
@@ -39,22 +38,22 @@
               <td class="has-text-right">
                 {% if request.user.is_staff %}
                   <div class="buttons are-small is-right">
-                    <!-- Green ✓ = delivered -->
+                    <!-- Verde ✓ = Entregue -->
                     <form method="post" action="{% url 'orders:deliver' o.id 'delivered' %}" class="is-inline-block">
                       {% csrf_token %}
                       <button type="submit" class="button is-success"
-                              title="{% trans 'Mark as delivered' %}"
-                              aria-label="{% trans 'Mark as delivered' %}">
-                        ✓ {% trans "Delivered" %}
+                              title="Marcar como entregue"
+                              aria-label="Marcar como entregue">
+                        ✓ Entregue
                       </button>
                     </form>
-                    <!-- Yellow ⚠ = undelivered -->
+                    <!-- Amarelo ⚠ = Não Entregue -->
                     <form method="post" action="{% url 'orders:deliver' o.id 'undelivered' %}" class="is-inline-block ml-2">
                       {% csrf_token %}
                       <button type="submit" class="button is-warning"
-                              title="{% trans 'Mark as undelivered' %}"
-                              aria-label="{% trans 'Mark as undelivered' %}">
-                        ⚠ {% trans "Undelivered" %}
+                              title="Marcar como não entregue"
+                              aria-label="Marcar como não entregue">
+                        ⚠ Não Entregue
                       </button>
                     </form>
                   </div>
@@ -68,13 +67,13 @@
       </table>
     </div>
   {% else %}
-    <p class="has-text-grey">{% trans "No pending orders for today." %}</p>
+    <p class="has-text-grey">Nenhum pedido pendente para hoje.</p>
   {% endif %}
 </div>
 
 <div class="buttons">
   <a class="button" href="{% url 'orders:list' %}">
-    {% trans "Go to Orders (today)" %}
+    Ir para Pedidos (hoje)
   </a>
 </div>
 

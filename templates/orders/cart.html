@@ -1,59 +1,44 @@
-{% extends "base.html" %}
-{% load static i18n %}
-
-{% block title %}{% trans "Cart" %} - Hango{% endblock %}
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Carrinho - Hango{% endblock %}
 
 {% block content %}
-  <h1 class="title">{% trans "Your Cart" %}</h1>
-  <p class="subtitle">{% trans "Meals are free; limits may apply per category each day." %}</p>
-
-  {% if messages %}
-    {% for m in messages %}
-      <div class="notification is-info">{{ m }}</div>
-    {% endfor %}
-  {% endif %}
+  <h1 class="title">Seu Carrinho</h1>
+  <p class="subtitle">Refeições são gratuitas; limites podem ser aplicados por categoria a cada dia.</p>
 
   {% if lines %}
     <table class="table is-fullwidth">
       <thead>
         <tr>
-          <th>{% trans "Item" %}</th>
-          <th class="has-text-right">{% trans "Qty" %}</th>
-          <th class="has-text-right">{% trans "Actions" %}</th>
+          <th>Item</th>
+          <th>Qtd</th>
+          <th>Ações</th>
         </tr>
       </thead>
       <tbody>
         {% for l in lines %}
           <tr>
+            <td>{{ l.name }}</td>
+            <td>{{ l.qty }}</td>
             <td>
-              {# Prefer l.item.name if your context provides it; fallback to l.name #}
-              {{ l.item.name|default:l.name }}
-              {% if l.item.category %}
-                <span class="tag is-light is-small ml-2">{{ l.item.category.name }}</span>
-              {% endif %}
-            </td>
-            <td class="has-text-right">{{ l.qty }}</td>
-            <td class="has-text-right">
-              {# If your remove view expects pk of the Item, pass l.item.id; else fallback to l.key #}
-              <a class="button is-small is-light"
-                 href="{% url 'orders:remove' l.item.id|default:l.key %}">
-                {% trans "Remove" %}
-              </a>
+              <form method="post" action="{% url 'orders:remove' l.key %}">
+                {% csrf_token %}
+                <button type="submit" class="button is-small is-danger">Remover</button>
+              </form>
             </td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
 
-    <div class="is-flex is-justify-content-space-between is-align-items-center mt-4">
-      <a class="button" href="{% url 'menu:list' %}">{% trans "Back to menu" %}</a>
-      <form method="post" action="{% url 'orders:checkout' %}">
-        {% csrf_token %}
-        <button type="submit" class="button is-primary">{% trans "Checkout" %}</button>
-      </form>
+    <div class="buttons mt-4">
+      <a class="button is-light" href="{% url 'menu:list' %}">Voltar para o cardápio</a>
+      <a class="button is-primary" href="{% url 'orders:checkout' %}">Pedir</a>
     </div>
   {% else %}
-    <p>{% trans "Your cart is empty." %}</p>
-    <a class="button" href="{% url 'menu:list' %}">{% trans "Browse menu" %}</a>
+    <p>Seu carrinho está vazio.</p>
+    <div class="buttons mt-3">
+      <a class="button is-light" href="{% url 'menu:list' %}">Ver cardápio</a>
+    </div>
   {% endif %}
 {% endblock %}

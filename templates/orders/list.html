@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
-{% load i18n %}
-{% block title %}{% trans "Orders" %} - Hango{% endblock %}
+{% load static %}
+{% block title %}Pedidos - Hango{% endblock %}
 
 {% block content %}
-  <h1 class="title">{% trans "Orders" %}</h1>
-  <p class="subtitle">{% trans "Daily list of delivered/undelivered orders." %}</p>
+  <h1 class="title">Pedidos</h1>
+  <p class="subtitle">Lista diária de pedidos entregues/não entregues.</p>
 
-  <form method="get" class="box mb-5" role="search" aria-label="{% trans 'Filter by date' %}">
+  <form method="get" class="box mb-5" role="search" aria-label="Filtrar por data">
     <div class="field is-grouped is-align-items-center">
       <div class="control">
-        <label for="date" class="label is-small">{% trans "Select date" %}</label>
+        <label for="date" class="label is-small">Selecionar data</label>
         <input id="date" name="date" type="date" class="input"
                value="{{ selected_date|date:'Y-m-d' }}" />
       </div>
       <div class="control mt-5-mobile">
-        <button type="submit" class="button is-info mt-4">{% trans "Filter" %}</button>
+        <button type="submit" class="button is-info mt-4">Filtrar</button>
       </div>
     </div>
   </form>
@@ -25,10 +25,10 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>{% trans "When" %}</th>
-            <th>{% trans "Student" %}</th>
-            <th>{% trans "Items" %}</th>
-            <th>{% trans "Status" %}</th>
+            <th>Quando</th>
+            <th>Aluno</th>
+            <th>Itens</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -36,7 +36,7 @@
             {% for o in orders %}
               <tr>
                 <td>#{{ o.id }}</td>
-                <td>{{ o.created_at|timesince }} {% trans "ago" %}</td>
+                <td>{{ o.created_at|timesince }} atrás</td>
                 <td>{{ o.user.get_full_name|default:o.user.username }}</td>
                 <td>
                   {% for line in o.lines.all %}
@@ -47,11 +47,11 @@
                 </td>
                 <td>
                   {% if o.delivery_status == 'delivered' %}
-                    <span class="tag is-success">{% trans "Delivered" %}</span>
+                    <span class="tag is-success">Entregue</span>
                   {% elif o.delivery_status == 'undelivered' %}
-                    <span class="tag is-warning">{% trans "Undelivered" %}</span>
+                    <span class="tag is-warning">Não Entregue</span>
                   {% else %}
-                    <span class="tag is-light">–</span>
+                    <span class="tag is-light">—</span>
                   {% endif %}
                 </td>
               </tr>
@@ -59,7 +59,7 @@
           {% else %}
             <tr>
               <td colspan="5" class="has-text-centered has-text-grey">
-                {% trans "No orders for this date." %}
+                Nenhum pedido nesta data.
               </td>
             </tr>
           {% endif %}
