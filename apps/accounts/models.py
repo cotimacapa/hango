@@ -4,27 +4,29 @@ from django.contrib.auth.models import (
     AbstractBaseUser, PermissionsMixin, BaseUserManager
 )
 from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 import re
+
+# ⬇️ Import para exibir dias de almoço de forma legível
+from hango.core.weekdays import human_days as human_days_str
 
 
 def validate_cpf(value: str):
-    """Strict CPF validation (digits only + check digits)."""
+    """Validação estrita de CPF (apenas dígitos + dígitos verificadores)."""
     digits = re.sub(r'\D', '', value or '')
     if len(digits) != 11:
-        raise ValidationError(_("CPF must have 11 digits."))
+        raise ValidationError("O CPF deve ter 11 dígitos.")
     if digits == digits[0] * 11:
-        raise ValidationError(_("Invalid CPF."))
+        raise ValidationError("CPF inválido.")
     s = sum(int(digits[i]) * (10 - i) for i in range(9))
     d1 = (s * 10) % 11
     d1 = 0 if d1 == 10 else d1
     if d1 != int(digits[9]):
-        raise ValidationError(_("Invalid CPF."))
+        raise ValidationError("CPF inválido.")
     s = sum(int(digits[i]) * (11 - i) for i in range(10))
     d2 = (s * 10) % 11
     d2 = 0 if d2 == 10 else d2
     if d2 != int(digits[10]):
-        raise ValidationError(_("Invalid CPF."))
+        raise ValidationError("CPF inválido.")
 
 
 class UserManager(BaseUserManager):
@@ -32,7 +34,7 @@ class UserManager(BaseUserManager):
 
     def _create_user(self, cpf, password, **extra):
         if not cpf:
-            raise ValueError("CPF is required.")
+            raise ValueError("O CPF é obrigatório.")
         cpf = re.sub(r'\D', '', str(cpf))
         user = self.model(cpf=cpf, **extra)
         user.set_password(password)
@@ -48,32 +50,43 @@ class UserManager(BaseUserManager):
         extra.setdefault("is_staff", True)
         extra.setdefault("is_superuser", True)
         if extra.get("is_staff") is not True or extra.get("is_superuser") is not True:
-            raise ValueError("Superuser must have is_staff=True and is_superuser=True.")
+            raise ValueError("O superusuário deve ter is_staff=True e is_superuser=True.")
         return self._create_user(cpf, password, **extra)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    cpf        = models.CharField(_("CPF"), max_length=11, unique=True, validators=[validate_cpf])
-    first_name = models.CharField(_("first name"), max_length=150, blank=True)
-    last_name  = models.CharField(_("last name"),  max_length=150, blank=True)
-    email      = models.EmailField(_("email address"), blank=True)
+    cpf        = models.CharField("CPF", max_length=11, unique=True, validators=[validate_cpf])
+    first_name = models.CharField("Nome", max_length=150, blank=True)
+    last_name  = models.CharField("Sobrenome", max_length=150, blank=True)
+    email      = models.EmailField("E-mail", blank=True)
 
-    is_active  = models.BooleanField(_("active"), default=True)
-    is_staff   = models.BooleanField(_("staff status"), default=False)
-    date_joined = models.DateTimeField(_("date joined"), auto_now_add=True)
+    is_active  = models.BooleanField("Ativo", default=True)
+    is_staff   = models.BooleanField("Equipe/Staff", default=False)
+    date_joined = models.DateTimeField("Data de cadastro", auto_now_add=True)
 
-    # CPF is the login identifier
+    # ⬇️ NOVOS CAMPOS: sobrescrita individual de dias de almoço
+    lunch_days_override_enabled = models.BooleanField(
+        "Ativar sobrescrita individual de dias de almoço",
+        default=False,
+        help_text="Se ativado, usa os dias individuais abaixo em vez das regras da turma.",
+    )
+    lunch_days_override_mask = models.PositiveSmallIntegerField(
+        "Dias individuais de almoço (Seg–Dom)",
+        default=0,
+        help_text="Bitmask dos dias permitidos: Seg=1, Ter=2, Qua=4, Qui=8, Sex=16, Sáb=32, Dom=64.",
+    )
+
+    # CPF é o identificador de login
     USERNAME_FIELD = "cpf"
     REQUIRED_FIELDS: list[str] = ["first_name"]
 
     objects = UserManager()
 
     class Meta:
-        verbose_name = _("User")
-        verbose_name_plural = _("Users")
-        # (optional) ordering, etc.
+        verbose_name = "Usuário"
+        verbose_name_plural = "Usuários"
 
-    # ---- Friendly display & compatibility ----
+    # ---- Exibição amigável ----
     def get_full_name(self) -> str:
         name = f"{self.first_name} {self.last_name}".strip()
         return name or self.cpf
@@ -83,8 +96,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def username(self) -> str:
-        """Compatibility for code/templates expecting .username."""
+        """Compatibilidade para código/templates que esperam .username."""
         return self.cpf
 
     def __str__(self) -> str:
         return self.get_full_name()
+
+    # ⬇️ NOVO: auxiliar para exibir no admin
+    def human_lunch_days_override(self) -> str:
+        if not self.lunch_days_override_enabled:
+            return "—"
+        return human_days_str(self.lunch_days_override_mask)
+    human_lunch_days_override.short_description = "Dias (sobrescrita)"
