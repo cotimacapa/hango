@@ -1,0 +1,16 @@
+<div class="weekday-mask">
+  <div class="weekday-toggle-row">
+    {% for subwidget in widget.subwidgets %}
+      <label class="weekday-toggle">
+        {# Render the real <input> using the subwidget's own template #}
+        {% include subwidget.template_name with widget=subwidget %}
+        <span class="weekday-label">
+          {% if forloop.counter0 == 0 %}Seg{% elif forloop.counter0 == 1 %}Ter
+          {% elif forloop.counter0 == 2 %}Qua{% elif forloop.counter0 == 3 %}Qui
+          {% elif forloop.counter0 == 4 %}Sex{% elif forloop.counter0 == 5 %}Sáb
+          {% else %}Dom{% endif %}
+        </span>
+      </label>
+    {% endfor %}
+  </div>
+</div>

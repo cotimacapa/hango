@@ -1,0 +1,90 @@
+/* UNIVERSAL: compact squares, wrap when no space, same in ALL viewports.
+   Strategy: no grid/flex on the row; each pill is an inline-flex fixed box.
+   Inline flow wraps naturally and ignores admin's aligned-label floats. */
+
+/* Row container — keep it neutral so inline items wrap naturally */
+.weekday-toggle-row {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+/* Pill container (your widget renders this as a <label class="weekday-toggle">)
+   Make it a fixed-size inline box and kill admin's float/clear/width rules. */
+.weekday-toggle,
+label.weekday-toggle {
+  position: relative;
+  display: inline-flex !important;   /* inline → wraps; flex → centers content */
+  width: 56px !important;
+  height: 56px !important;
+  margin: 0 8px 8px 0;               /* spacing between pills */
+  padding: 0 !important;
+  box-sizing: border-box;
+  vertical-align: top;
+
+  /* Nuke Django admin aligned-form hacks */
+  float: none !important;
+  clear: none !important;
+  max-width: none !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hide the real checkbox (still focusable for a11y) */
+.weekday-toggle input[type="checkbox"] {
+  position: absolute !important;
+  inset: 0;
+  opacity: 0;
+}
+
+/* Visible square */
+.weekday-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  border: 1px solid #3a3a3a;
+  background: #2b2b2b;
+  color: #d9d9d9;
+  text-align: center;
+  line-height: 1;
+  transition: background .15s, color .15s, border-color .15s, transform .03s;
+}
+
+.weekday-toggle:hover .weekday-label { transform: translateY(-1px); }
+.weekday-toggle:active .weekday-label { transform: translateY(0); }
+
+/* Checked */
+.weekday-toggle input[type="checkbox"]:checked + .weekday-label {
+  background: #2F9B46 !important;
+  color: #ffffff !important;
+  border-color: #2F9B46 !important;
+}
+
+/* Extra insurance for modern browsers */
+@supports(selector(:has(*))) {
+  .weekday-toggle:has(input[type="checkbox"]:checked) .weekday-label {
+    background: #2F9B46 !important;
+    color: #ffffff !important;
+    border-color: #2F9B46 !important;
+  }
+}
+
+/* Focus ring */
+.weekday-toggle input[type="checkbox"]:focus + .weekday-label {
+  outline: 2px solid #2F9B46;
+  outline-offset: 2px;
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  .weekday-label {
+    background: #f2f2f2;
+    color: #333333;
+    border-color: #d9d9d9;
+  }
+}

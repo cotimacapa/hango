@@ -1,14 +1,17 @@
 # hango/admin/widgets.py
 from django import forms
+from django.utils.safestring import mark_safe
 from hango.core.weekdays import bools_from_mask, mask_from_bools, WEEKDAY_LABELS_PT
-
 
 class WeekdayMaskWidget(forms.MultiWidget):
     """
-    Widget para editar um bitmask de dias da semana.
-    Renderiza 7 checkboxes (Seg..Dom) com os rótulos apropriados.
+    Widget para editar um bitmask de dias da semana como botões on/off (Seg..Dom).
+    Usa template custom e CSS próprio via Media.
     """
+    template_name = "admin/widgets/weekday_mask.html"
+
     def __init__(self, attrs=None):
+        # 7 checkboxes "internos" — serão estilizados como botões
         widgets = [forms.CheckboxInput() for _ in range(7)]
         super().__init__(widgets, attrs)
 
@@ -19,21 +22,21 @@ class WeekdayMaskWidget(forms.MultiWidget):
 
     def get_context(self, name, value, attrs):
         ctx = super().get_context(name, value, attrs)
-        # Adiciona labels para que o template saiba exibir "Seg..Dom"
         ctx["widget"]["weekday_labels"] = WEEKDAY_LABELS_PT
         return ctx
 
-    def format_output(self, rendered_widgets):
-        # Django >= 1.11 não usa mais; mantido por compatibilidade
-        return super().format_output(rendered_widgets)
-
+    class Media:
+        css = {
+            "all": ("hango/admin/weekday_mask.css",)  # <- coloque este arquivo em static/
+        }
+        # sem JS obrigatório
 
 class WeekdayMaskField(forms.MultiValueField):
     """
-    Campo que traduz os 7 checkboxes em um único inteiro (bitmask).
+    Campo que traduz os 7 toggles em um inteiro (bitmask).
     """
     def __init__(self, *args, **kwargs):
-        fields = [forms.BooleanField(required=False, label=WEEKDAY_LABELS_PT[i]) for i in range(7)]
+        fields = [forms.BooleanField(required=False) for _ in range(7)]
         super().__init__(fields=fields, require_all_fields=False, *args, **kwargs)
         self.widget = WeekdayMaskWidget()
 
