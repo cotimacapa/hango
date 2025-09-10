@@ -3,7 +3,9 @@ from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser, PermissionsMixin, BaseUserManager
 )
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied  # UPDATED
+from django.utils import timezone  # NEW
+from django.apps import apps        # NEW
 import re
 
 # ⬇️ Import para exibir dias de almoço de forma legível
@@ -76,6 +78,31 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Bitmask dos dias permitidos: Seg=1, Ter=2, Qua=4, Qui=8, Sex=16, Sáb=32, Dom=64.",
     )
 
+    # ⬇️ NEW: Bloqueio para pedidos / auditoria leve
+    is_blocked = models.BooleanField("Bloqueado para pedir", default=False)  # NEW
+    block_source = models.CharField(  # NEW
+        "Origem do bloqueio",
+        max_length=10,
+        blank=True,
+        choices=[("manual", "manual"), ("auto", "auto")],
+    )
+    blocked_reason = models.CharField("Motivo do bloqueio", max_length=200, blank=True)  # NEW
+    blocked_at = models.DateTimeField("Data do bloqueio", null=True, blank=True)  # NEW
+    blocked_by = models.ForeignKey(  # NEW
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="blocks_made",
+        verbose_name="Bloqueado por",
+        limit_choices_to={"is_staff": True},
+    )
+
+    # ⬇️ NEW: Acompanhamento de faltas consecutivas (no-show)
+    no_show_streak = models.PositiveSmallIntegerField("Faltas consecutivas", default=0)  # NEW
+    last_no_show_at = models.DateField("Última falta", null=True, blank=True)  # NEW
+    last_pickup_at = models.DateField("Última retirada", null=True, blank=True)  # NEW
+
     # CPF é o identificador de login
     USERNAME_FIELD = "cpf"
     REQUIRED_FIELDS: list[str] = ["first_name"]
@@ -108,3 +135,85 @@ class User(AbstractBaseUser, PermissionsMixin):
             return "—"
         return human_days_str(self.lunch_days_override_mask)
     human_lunch_days_override.short_description = "Dias (sobrescrita)"
+
+    # ⬇️ NEW: API de bloqueio / desbloqueio
+    def block(self, *, source: str, by=None, reason: str = "") -> None:
+        """
+        Bloqueia o usuário para fazer pedidos.
+        source: "manual" | "auto"
+        by: usuário staff que aplicou o bloqueio (ou None em auto)
+        reason: texto curto (até 200 chars)
+        """
+        self.is_blocked = True
+        self.block_source = source
+        self.blocked_reason = (reason or "")[:200]
+        self.blocked_at = timezone.now()
+        self.blocked_by = by if (by and getattr(by, "is_staff", False)) else None
+        self.save(update_fields=["is_blocked", "block_source", "blocked_reason", "blocked_at", "blocked_by"])
+
+        # registrar evento
+        BlockEvent = apps.get_model("accounts", "BlockEvent")
+        BlockEvent.objects.create(
+            user=self,
+            action="block",
+            source=source,
+            by_user=self.blocked_by,
+            reason=self.blocked_reason,
+        )
+
+    def unblock(self, *, by, reason: str = "") -> None:
+        """
+        Desbloqueia o usuário. Somente staff pode desbloquear.
+        Regra: ao desbloquear manualmente, zera a sequência de faltas.
+        """
+        if not getattr(by, "is_staff", False):
+            raise PermissionDenied("Apenas membros da equipe (staff) podem desbloquear.")
+
+        self.is_blocked = False
+        self.block_source = ""
+        self.blocked_reason = (reason or "")[:200]
+        self.blocked_at = None
+        self.blocked_by = by
+        # decisão: ao desbloquear manualmente, zera streak
+        self.no_show_streak = 0
+        self.save(update_fields=[
+            "is_blocked", "block_source", "blocked_reason", "blocked_at", "blocked_by", "no_show_streak"
+        ])
+
+        # registrar evento
+        BlockEvent = apps.get_model("accounts", "BlockEvent")
+        BlockEvent.objects.create(
+            user=self,
+            action="unblock",
+            source="manual",
+            by_user=by,
+            reason=self.blocked_reason,
+        )
+
+
+# ⬇️ NEW: trilha de auditoria de bloqueios/desbloqueios
+class BlockEvent(models.Model):
+    ACOES = [("block", "block"), ("unblock", "unblock")]
+    FONTES = [("manual", "manual"), ("auto", "auto")]
+
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="block_events")
+    action = models.CharField("Ação", max_length=8, choices=ACOES)
+    source = models.CharField("Origem", max_length=8, choices=FONTES)
+    by_user = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="block_events_made",
+        verbose_name="Executado por",
+    )
+    reason = models.CharField("Motivo", max_length=200, blank=True)
+    created_at = models.DateTimeField("Criado em", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Evento de bloqueio"
+        verbose_name_plural = "Eventos de bloqueio"
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.created_at:%Y-%m-%d %H:%M} {self.user} {self.action} ({self.source})"

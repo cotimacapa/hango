@@ -4,4 +4,4 @@ from django.utils.translation import gettext_lazy as _
 class MenuConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.menu"
-    verbose_name = _("Menu")
+    verbose_name = _("Cardápio")

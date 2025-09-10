@@ -16,6 +16,9 @@ from django.views.decorators.http import require_http_methods
 from apps.menu.models import Item
 from .models import Order, OrderItem
 
+# NEW: import the order services (step 2.2)
+from apps.orders.services import mark_no_show, mark_picked_up  # NEW
+
 
 # ---------------------------------------------------------------------
 # Session-cart helpers
@@ -183,6 +186,11 @@ def checkout(request: HttpRequest) -> HttpResponse:
             {"lines": lines, "total_qty": total_qty, "total_price": total_price},
         )
 
+    # NEW: Enforce blocking at order time
+    if getattr(request.user, "is_blocked", False):  # NEW
+        messages.error(request, "Seu usuário está bloqueado para fazer pedidos. Procure a equipe.")  # NEW
+        return redirect("orders:cart")  # NEW
+
     if not lines:
         # Evita mensagens extras; apenas volta.
         return redirect("orders:cart")
@@ -253,27 +261,24 @@ def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpR
 def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> HttpResponse:
     """
     Define o status de entrega via dois botões:
-      - state == "delivered"   → delivery_status='delivered', registra delivered_at/by
-      - state == "undelivered" → delivery_status='undelivered', limpa delivered_at/by
+      - state == "delivered"   → marca retirado e reseta streak
+      - state == "undelivered" → marca no-show e atualiza streak (auto-bloqueia em 3)
     Depois redireciona para a Cozinha (a linha some por não estar mais pendente).
     """
     order = get_object_or_404(Order, pk=order_id)
 
     if state == "delivered":
-        order.delivery_status = "delivered"
-        order.delivered_at = timezone.now()
-        order.delivered_by = request.user
+        # UPDATED: use the helper (also sets delivered_at/by and resets streak)
+        mark_picked_up(order, by=request.user)  # NEW
         msg = "Marcado como entregue."
     elif state == "undelivered":
-        order.delivery_status = "undelivered"
-        order.delivered_at = None
-        order.delivered_by = None
+        # UPDATED: use the helper (sets no_show/undelivered, increments streak, may auto-block)
+        mark_no_show(order)  # NEW
         msg = "Marcado como não entregue."
     else:
         messages.error(request, "Status inválido.")
         return redirect("orders:kitchen")
 
-    order.save(update_fields=["delivery_status", "delivered_at", "delivered_by"])
     messages.success(request, msg)
     return redirect("orders:kitchen")
 
