@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='lunch_days_override_mask',
-            field=models.PositiveSmallIntegerField(default=0, help_text='Bitmask dos dias permitidos: Seg=1, Ter=2, Qua=4, Qui=8, Sex=16, Sáb=32, Dom=64.', verbose_name='Dias individuais de almoço (Seg–Dom)'),
+            field=models.PositiveSmallIntegerField(default=0, help_text='Bitmask dos dias permitidos: Seg=1, Ter=2, Qua=4, Qui=8, Sex=16, Sáb=32, Dom=64.', verbose_name='Dias individuais de almoço'),
         ),
         migrations.AlterField(
             model_name='user',

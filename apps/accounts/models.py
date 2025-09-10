@@ -71,7 +71,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Se ativado, usa os dias individuais abaixo em vez das regras da turma.",
     )
     lunch_days_override_mask = models.PositiveSmallIntegerField(
-        "Dias individuais de almoço (Seg–Dom)",
+        "Dias individuais de almoço",
         default=0,
         help_text="Bitmask dos dias permitidos: Seg=1, Ter=2, Qua=4, Qui=8, Sex=16, Sáb=32, Dom=64.",
     )

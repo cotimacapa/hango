@@ -11,7 +11,7 @@ from hango.admin.widgets import WeekdayMaskField
 class UserAdminForm(UserChangeForm):
     # Checkboxes Seg..Dom → bitmask
     lunch_days_override_mask = WeekdayMaskField(
-        label="Dias individuais de almoço (Seg–Dom)",
+        label="Dias individuais de almoço",
         required=False,
         help_text="Usado somente quando a sobrescrita está ativada."
     )

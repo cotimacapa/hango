@@ -12,7 +12,7 @@ User = get_user_model()
 class StudentClassAdminForm(forms.ModelForm):
     # Checkboxes Seg..Dom → bitmask
     days_mask = WeekdayMaskField(
-        label="Dias de almoço (Seg–Dom)",
+        label="Dias de almoço da turma",
         required=False,
         help_text="Selecione os dias em que a turma recebe almoço."
     )
