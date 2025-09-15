@@ -5,10 +5,9 @@ from typing import Any, Dict, List, Tuple
 from datetime import datetime
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseForbidden  # UPDATED
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -191,6 +190,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Seu usuário está bloqueado para fazer pedidos. Procure a equipe.")  # NEW
         return redirect("orders:cart")  # NEW
 
+    # NEW: Forbid operators (staff or superusers) from placing orders — server-side gate
+    if request.user.is_staff or request.user.is_superuser:  # NEW
+        return HttpResponseForbidden("Operadores não podem realizar pedidos.")  # NEW
+
     if not lines:
         # Evita mensagens extras; apenas volta.
         return redirect("orders:cart")
@@ -214,7 +217,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 @login_required
 def success(request: HttpRequest, order_id: int) -> HttpResponse:
-    return render(request, "orders/success.html", {"order_id": order_id})
+    # NEW: ensure the order being shown belongs to the current user
+    order = get_object_or_404(Order, pk=order_id, user=request.user)  # NEW
+    return render(request, "orders/success.html", {"order_id": order.pk})  # UPDATED
 
 
 # ---------------------------------------------------------------------
@@ -222,7 +227,8 @@ def success(request: HttpRequest, order_id: int) -> HttpResponse:
 # ---------------------------------------------------------------------
 
 @require_http_methods(["GET"])
-@staff_member_required
+@login_required
+@permission_required("orders.can_view_kitchen", raise_exception=True)
 def kitchen_board(request: HttpRequest) -> HttpResponse:
     """
     Mostra apenas pedidos pendentes do dia.
@@ -243,10 +249,11 @@ def kitchen_board(request: HttpRequest) -> HttpResponse:
 
 
 @require_http_methods(["POST"])
-@staff_member_required
+@login_required
+@permission_required("orders.can_manage_delivery", raise_exception=True)
 def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpResponse:
     """
-    Manipulador legado multi-estado (mantido por ora; restrito a staff).
+    Manipulador legado multi-estado (mantido por ora; restrito por permissão).
     Prefira set_delivery_status no fluxo novo.
     """
     order = get_object_or_404(Order, pk=order_id)
@@ -257,7 +264,8 @@ def update_status(request: HttpRequest, order_id: int, new_status: str) -> HttpR
 
 
 @require_http_methods(["POST"])
-@staff_member_required
+@login_required
+@permission_required("orders.can_manage_delivery", raise_exception=True)
 def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> HttpResponse:
     """
     Define o status de entrega via dois botões:
@@ -287,8 +295,9 @@ def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> Http
 # Pedidos (Orders) daily list
 # ---------------------------------------------------------------------
 
-@staff_member_required
 @require_http_methods(["GET"])
+@login_required
+@permission_required("orders.can_view_orders", raise_exception=True)
 def orders_list(request: HttpRequest) -> HttpResponse:
     """
     Página de Pedidos: mostra todos os pedidos *não pendentes* em um dia.
@@ -317,3 +326,27 @@ def orders_list(request: HttpRequest) -> HttpResponse:
         "page_title": "Pedidos",
     }
     return render(request, "orders/list.html", context)
+
+
+# ---------------------------------------------------------------------
+# Student — Order history (LIVE)
+# ---------------------------------------------------------------------
+
+@require_http_methods(["GET"])
+@login_required
+def order_history(request: HttpRequest) -> HttpResponse:
+    """
+    Student's own order history with basic status flags.
+    """
+    orders = (
+        Order.objects.filter(user=request.user)
+        .select_related("user")
+        .prefetch_related("lines__item")
+        .order_by("-created_at")[:200]
+    )
+    context = {
+        "orders": orders,
+        "is_blocked": bool(getattr(request.user, "is_blocked", False)),
+        "no_show_streak": int(getattr(request.user, "no_show_streak", 0) or 0),
+    }
+    return render(request, "orders/history.html", context)

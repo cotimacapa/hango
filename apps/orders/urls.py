@@ -13,6 +13,9 @@ urlpatterns = [
     path('status/<int:order_id>/<str:new_status>/', views.update_status, name='update_status'),
     path('deliver/<int:order_id>/<str:state>/', views.set_delivery_status, name='deliver'),
 
-    # 🔹 New placeholder Orders list route
+    # Staff daily orders list
     path('list/', views.orders_list, name='list'),
+
+    # NEW — Student history (mock page; will wire view next)
+    path('history/', views.order_history, name='order_history'),
 ]

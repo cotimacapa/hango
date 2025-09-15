@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Histórico" %} - Hango{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title">{% trans "Seu histórico de pedidos" %}</h1>
+    {% if is_blocked %}
+    <div class="notification is-danger">
+        Sua conta está <strong>bloqueada</strong> para realizar pedidos.
+        {% if no_show_streak %} Faltas seguidas: {{ no_show_streak }}.{% endif %}
+    </div>
+    {% else %}
+    <div class="notification is-success is-light">
+        Status: <strong>desbloqueada</strong>. Você pode realizar pedidos.
+    </div>
+    {% endif %}
+
+    {% if orders %}
+      <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable">
+          <thead>
+            <tr>
+              <th>{% trans "Data do pedido" %}</th>
+              <th>{% trans "Itens" %}</th>
+              <th>{% trans "Entrega" %}</th>
+              <th>{% trans "Status" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+              <tr>
+                <td>{{ o.created_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                  {% if o.lines.all %}
+                    {% for ln in o.lines.all %}
+                      {{ ln.qty }}× {{ ln.item.name }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>{{ o.delivered_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                  {% if o.delivery_status == "delivered" %}
+                    <span class="tag is-success">{% trans "Entregue" %}</span>
+                  {% elif o.delivery_status == "undelivered" %}
+                    <span class="tag is-danger">{% trans "Não entregue" %}</span>
+                  {% else %}
+                    <span class="tag is-warning">{% trans "Pendente" %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="has-text-grey">{% trans "Você ainda não tem pedidos. Quando fizer, eles aparecerão aqui." %}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

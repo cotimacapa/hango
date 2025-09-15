@@ -58,6 +58,11 @@ class Order(models.Model):
     class Meta:
         verbose_name = "Pedido"
         verbose_name_plural = "Pedidos"
+        permissions = [
+            ("can_view_kitchen", "Can view kitchen board"),
+            ("can_manage_delivery", "Can mark delivered / no-show"),
+            ("can_view_orders", "Can view daily orders list"),
+        ]
 
     def __str__(self):
         return f"Pedido {self.pk} de {self.user}"

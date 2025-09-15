@@ -81,13 +81,38 @@ class OrderAdmin(admin.ModelAdmin):
 
     actions = ("action_mark_picked_up", "action_mark_no_show")
 
+    # ---- Permission hardening: staff = read-only; superuser = full control ----
+    def has_view_permission(self, request, obj=None):
+        # Admin site already requires is_staff to access; allow staff to view list/detail
+        return request.user.is_superuser or request.user.is_staff
+
+    def has_add_permission(self, request):
+        # Only superusers can create orders via Admin (“Pedidos”)
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        # Only superusers can edit orders in Admin
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        # Only superusers can delete orders in Admin
+        return request.user.is_superuser
+
+    def get_actions(self, request):
+        # Hide mutating actions for non-superusers (defense in depth;
+        # staff lacks change permission anyway on modern Django)
+        actions = super().get_actions(request)
+        if not request.user.is_superuser:
+            return {}
+        return actions
+
     # Optimize queries
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related("user", "delivered_by").prefetch_related("lines__item")
 
 
-# Optional: separate admin for items (usually unnecessary because of inline)
+# Optional: separate admin for items — apply same superuser-only edit rule
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ("id", "order", "item", "qty")
@@ -95,3 +120,16 @@ class OrderItemAdmin(admin.ModelAdmin):
     search_fields = ("order__id", "item__name", "order__user__cpf")
     list_filter = (("order__service_day", admin.DateFieldListFilter),)
     autocomplete_fields = ("order", "item")
+
+    # Staff can view, only superuser can add/change/delete
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.is_staff
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser

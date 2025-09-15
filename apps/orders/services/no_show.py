@@ -1,14 +1,18 @@
 # apps/orders/services/no_show.py
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Optional
 
-from django.utils import timezone
+from django.conf import settings
 from django.db import transaction
 
-from apps.orders.models import Order  # adjust path if your app label differs
+from ..models import Order
 
-AUTO_BLOCK_THRESHOLD_DEFAULT = 3  # 3 faltas consecutivas
+
+# Default threshold for auto-blocking on consecutive no-shows.
+# Override in settings.py with: HANGO_AUTO_BLOCK_THRESHOLD = 3
+AUTO_BLOCK_THRESHOLD_DEFAULT: int = getattr(settings, "HANGO_AUTO_BLOCK_THRESHOLD", 3)
 
 
 @dataclass
@@ -25,68 +29,39 @@ class MarkResult:
 @transaction.atomic
 def mark_picked_up(order: Order, *, by=None) -> MarkResult:
     """
-    Marca o pedido como 'picked_up', registra entrega e zera a sequência de faltas do usuário.
+    Mark as delivered/picked up, set delivered_at/by, and reset the user's no-show streak.
+    Delegates to Order.mark_picked_up to keep business rules centralized.
     """
     prev = order.status
-    if order.status != "picked_up":
-        order.status = "picked_up"
-        order.delivery_status = "delivered"
-        order.delivered_at = timezone.now()
-        if by is not None and getattr(by, "is_staff", False):
-            order.delivered_by = by
-        order.save(update_fields=["status", "delivery_status", "delivered_at", "delivered_by"])
-
+    order = order.mark_picked_up(by=by)
     u = order.user
-    if u.no_show_streak != 0 or not u.last_pickup_at:
-        u.no_show_streak = 0
-        u.last_pickup_at = timezone.localdate()
-        u.save(update_fields=["no_show_streak", "last_pickup_at"])
-
     return MarkResult(
         order_id=order.pk,
         user_id=u.pk,
         prev_status=prev,
         new_status=order.status,
-        no_show_streak=u.no_show_streak,
-        blocked=u.is_blocked,
-        block_source=u.block_source or None,
+        no_show_streak=getattr(u, "no_show_streak", 0) or 0,
+        blocked=bool(getattr(u, "is_blocked", False)),
+        block_source=getattr(u, "block_source", None),
     )
 
 
 @transaction.atomic
-def mark_no_show(
-    order: Order,
-    *,
-    auto_block_threshold: int = AUTO_BLOCK_THRESHOLD_DEFAULT,
-) -> MarkResult:
+def mark_no_show(order: Order, *, auto_block_threshold: Optional[int] = None) -> MarkResult:
     """
-    Marca o pedido como 'no_show', incrementa a sequência de faltas e
-    bloqueia automaticamente ao atingir 'auto_block_threshold' (padrão: 3).
+    Mark as no-show/undelivered, increment the user's streak, and auto-block if threshold reached.
+    Delegates to Order.mark_no_show.
     """
+    threshold = AUTO_BLOCK_THRESHOLD_DEFAULT if auto_block_threshold is None else int(auto_block_threshold)
     prev = order.status
-    if order.status != "no_show":
-        order.status = "no_show"
-        order.delivery_status = "undelivered"
-        order.save(update_fields=["status", "delivery_status"])
-
+    order = order.mark_no_show(auto_block_threshold=threshold)
     u = order.user
-    u.no_show_streak = (u.no_show_streak or 0) + 1
-    u.last_no_show_at = timezone.localdate()
-
-    blocked_now = False
-    if (u.no_show_streak >= auto_block_threshold) and not u.is_blocked:
-        # usa os helpers do modelo User (gera BlockEvent)
-        u.block(source="auto", by=None, reason=f"{auto_block_threshold} faltas consecutivas")
-        blocked_now = True
-    else:
-        u.save(update_fields=["no_show_streak", "last_no_show_at"])
-
     return MarkResult(
         order_id=order.pk,
         user_id=u.pk,
         prev_status=prev,
         new_status=order.status,
-        no_show_streak=u.no_show_streak,
-        blocked=u.is_blocked,
-        block_source=("auto" if blocked_now else (u.block_source or None)),
+        no_show_streak=getattr(u, "no_show_streak", 0) or 0,
+        blocked=bool(getattr(u, "is_blocked", False)),
+        block_source=getattr(u, "block_source", None),
     )

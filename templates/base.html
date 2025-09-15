@@ -60,6 +60,12 @@
                 href="{% url 'orders:cart' %}">
                 Carrinho ({{ cart_count }})
               </a>
+
+              <!-- NEW: Histórico (students only), placed immediately to the right of Carrinho -->
+              <a class="navbar-item {% if request.resolver_match and request.resolver_match.app_name == 'orders' and request.resolver_match.url_name == 'order_history' %}is-active{% endif %}"
+                 href="{% url 'orders:order_history' %}">
+                Histórico
+              </a>
             {% endif %}
             
             {% if request.user.is_staff %}
