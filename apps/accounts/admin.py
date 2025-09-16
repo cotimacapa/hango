@@ -145,7 +145,7 @@ class UserAdminForm(UserChangeForm):
         if self.request and not self.request.user.is_superuser:
             self.fields["role"].choices = [c for c in ROLE_CHOICES if c[0] != ROLE_ADMIN]
 
-        # CRUCIAL: remove block-related fields when target user is not a Student
+        # Remove block-related fields when target user is not a Student
         if eff_role != ROLE_STUDENT:
             for f in BLOCK_FIELDS:
                 self.fields.pop(f, None)
@@ -188,13 +188,28 @@ class UserAdmin(BaseUserAdmin):
 
     list_display = (
         "cpf", "first_name", "last_name",
-        "is_staff", "is_active",
-        "is_blocked", "no_show_streak",
+        "display_role",           # Papel (Aluno/Equipe/Admin)
+        "is_active",
+        "display_blocked",        # <-- Bloqueado para pedir (with N/A)
+        "no_show_streak",
         "human_lunch_days_override",
     )
     ordering = ("cpf",)
     search_fields = ("cpf", "first_name", "last_name", "email")
-    list_filter = ("is_staff", "is_active", "is_blocked")
+    list_filter = ("is_active", "is_blocked")
+
+    # Pretty columns
+    @admin.display(description="Papel", ordering="is_staff")
+    def display_role(self, obj: User) -> str:
+        m = {ROLE_STUDENT: "Aluno", ROLE_STAFF: "Equipe", ROLE_ADMIN: "Admin"}
+        return m.get(compute_role(obj), "—")
+
+    @admin.display(description="Bloqueado para pedir", ordering="is_blocked")
+    def display_blocked(self, obj: User) -> str:
+        # Show N/A for non-students; only students are blockable for ordering
+        if compute_role(obj) != ROLE_STUDENT:
+            return "N/A"
+        return "Sim" if getattr(obj, "is_blocked", False) else "Não"
 
     # Base fieldsets (no Bloqueio here; we add it conditionally below)
     base_fieldsets = (
@@ -229,14 +244,11 @@ class UserAdmin(BaseUserAdmin):
                 super().__init__(*a, **kw)
         return BoundForm
 
-    # Show fieldsets dynamically:
-    # - Bloqueio only for Students
-    # - Advanced only for superusers with ?show_advanced=1
+    # Dynamic fieldsets
     def get_fieldsets(self, request, obj=None):
         show_advanced = request.user.is_superuser and request.GET.get("show_advanced") == "1"
         fieldsets = list(self.base_fieldsets)
 
-        # Compute effective role: from object if editing, else from POST (or default)
         if obj:
             eff_role = compute_role(obj)
         else:
@@ -252,7 +264,7 @@ class UserAdmin(BaseUserAdmin):
 
         return tuple(fieldsets)
 
-    # Show BlockEvent inline only for Students
+    # Inlines only for Students
     def get_inlines(self, request, obj):
         if obj and compute_role(obj) == ROLE_STUDENT:
             return [BlockEventInline]
