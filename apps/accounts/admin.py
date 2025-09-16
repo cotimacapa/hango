@@ -1,55 +1,74 @@
 # apps/accounts/admin.py
+from __future__ import annotations
+
 from django import forms
+from django.apps import apps as django_apps
 from django.contrib import admin, messages
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as DjangoGroupAdmin
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
 
 from .models import User, BlockEvent
 from .forms import UserCreationForm, UserChangeForm
 from hango.admin.widgets import WeekdayMaskField
 
+# --- Roles ---------------------------------------------------------------
 
-class UserAdminForm(UserChangeForm):
-    """
-    Admin change form that:
-      - Uses WeekdayMaskField for students (nice UI).
-      - For staff, *replaces* the mask field with IntegerField(0) + HiddenInput
-        so the field won't demand a list and block saves.
-    """
-    # Default field: for students we want the mask widget/field
-    lunch_days_override_mask = WeekdayMaskField(
-        label="Dias individuais de almoço",
-        required=False,
-        help_text="Usado somente quando a sobrescrita está ativada.",
-    )
+ROLE_STUDENT = "student"   # Aluno
+ROLE_STAFF   = "staff"     # Equipe (operador)
+ROLE_ADMIN   = "admin"     # Superuser
 
-    class Meta(UserChangeForm.Meta):
-        model = User
-        fields = "__all__"
+ROLE_CHOICES = (
+    (ROLE_STUDENT, "Aluno"),
+    (ROLE_STAFF,   "Equipe"),
+    (ROLE_ADMIN,   "Admin"),
+)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+OP_PERMS = (
+    "orders.can_view_kitchen",
+    "orders.can_manage_delivery",
+    "orders.can_view_orders",
+)
 
-        # Ensure override fields are never 'required' at the HTML/form layer
-        for fname in ("lunch_days_override_enabled", "lunch_days_override_mask"):
-            if fname in self.fields:
-                self.fields[fname].required = False
+BLOCK_FIELDS = (
+    "is_blocked", "blocked_reason", "block_source", "blocked_at", "blocked_by",
+    "no_show_streak", "last_no_show_at", "last_pickup_at",
+)
 
-        # For staff, *replace* field definitions to avoid "list required" validation
-        instance = getattr(self, "instance", None)
-        if instance and instance.is_staff:
-            # Hide + force defaults: enabled=False, mask=0
-            if "lunch_days_override_enabled" in self.fields:
-                self.fields["lunch_days_override_enabled"] = forms.BooleanField(
-                    required=False, initial=False, widget=forms.HiddenInput()
-                )
-                self.initial["lunch_days_override_enabled"] = False
+# --- Helpers -------------------------------------------------------------
 
-            # CRUCIAL: replace the WeekdayMaskField with IntegerField
-            self.fields["lunch_days_override_mask"] = forms.IntegerField(
-                required=False, initial=0, widget=forms.HiddenInput()
-            )
-            self.initial["lunch_days_override_mask"] = 0
+def get_staff_group() -> Group:
+    name_candidates = ["Staff", "Equipe"]
+    g = None
+    for nm in name_candidates:
+        g = Group.objects.filter(name=nm).first()
+        if g:
+            break
+    if not g:
+        g = Group.objects.create(name="Staff")
 
+    try:
+        Order = django_apps.get_model("orders", "Order")
+        ct = ContentType.objects.get_for_model(Order)
+        perms = Permission.objects.filter(content_type=ct, codename__in=OP_PERMS)
+        if perms.count():
+            g.permissions.add(*perms)
+    except Exception:
+        pass
+    return g
+
+
+def compute_role(u: User) -> str:
+    if getattr(u, "is_superuser", False):
+        return ROLE_ADMIN
+    has_ops = any(u.has_perm(p) for p in OP_PERMS)
+    in_staff_group = u.groups.filter(name__in=["Staff", "Equipe"]).exists()
+    if has_ops or in_staff_group or getattr(u, "is_staff", False):
+        return ROLE_STAFF
+    return ROLE_STUDENT
+
+
+# --- Inline: audit -------------------------------------------------------
 
 class BlockEventInline(admin.TabularInline):
     model = BlockEvent
@@ -66,15 +85,106 @@ class BlockEventInline(admin.TabularInline):
     def has_delete_permission(self, request, obj=None): return False
 
 
+# --- Admin forms ---------------------------------------------------------
+
+class UserAdminForm(UserChangeForm):
+    """
+    Change form with 'role' selector.
+    Shows Bloqueio fields only for Aluno (role == student). For other roles,
+    those fields are REMOVED from the form (cannot be posted/changed).
+    """
+    role = forms.ChoiceField(choices=ROLE_CHOICES, label="Papel", required=True)
+
+    lunch_days_override_mask = WeekdayMaskField(
+        label="Dias individuais de almoço",
+        required=False,
+        help_text="Usado somente quando a sobrescrita está ativada.",
+    )
+
+    class Meta(UserChangeForm.Meta):
+        model = User
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("_request", None)
+        super().__init__(*args, **kwargs)
+
+        # Never require lunch override fields at the form layer
+        for fname in ("lunch_days_override_enabled", "lunch_days_override_mask"):
+            if fname in self.fields:
+                self.fields[fname].required = False
+
+        # Effective role
+        if self.instance and self.instance.pk:
+            eff_role = compute_role(self.instance)
+        else:
+            eff_role = ROLE_STUDENT
+        self.initial["role"] = eff_role
+
+        # Hide/lock raw auth knobs unless explicitly requested by superuser
+        show_advanced = bool(self.request and self.request.user.is_superuser and
+                             self.request.GET.get("show_advanced") == "1")
+        if not show_advanced:
+            for fname in ("is_staff", "is_superuser", "groups", "user_permissions"):
+                if fname in self.fields:
+                    self.fields.pop(fname)
+
+        # Staff UX: replace mask with hidden integer 0 so no “list required”
+        instance = getattr(self, "instance", None)
+        if instance and instance.is_staff:
+            self.fields["lunch_days_override_enabled"] = forms.BooleanField(
+                required=False, initial=False, widget=forms.HiddenInput()
+            )
+            self.initial["lunch_days_override_enabled"] = False
+            self.fields["lunch_days_override_mask"] = forms.IntegerField(
+                required=False, initial=0, widget=forms.HiddenInput()
+            )
+            self.initial["lunch_days_override_mask"] = 0
+
+        # If editor is not superuser, drop 'Admin' from choices
+        if self.request and not self.request.user.is_superuser:
+            self.fields["role"].choices = [c for c in ROLE_CHOICES if c[0] != ROLE_ADMIN]
+
+        # CRUCIAL: remove block-related fields when target user is not a Student
+        if eff_role != ROLE_STUDENT:
+            for f in BLOCK_FIELDS:
+                self.fields.pop(f, None)
+
+    def clean(self):
+        cleaned = super().clean()
+        # Students: if override enabled, require non-zero mask
+        if not cleaned.get("is_staff") and cleaned.get("lunch_days_override_enabled"):
+            mask = int(cleaned.get("lunch_days_override_mask") or 0)
+            if mask <= 0:
+                self.add_error("lunch_days_override_mask", "Selecione ao menos um dia da semana.")
+        # Guard: non-superusers cannot set Admin
+        if self.request and not self.request.user.is_superuser:
+            if cleaned.get("role") == ROLE_ADMIN:
+                self.add_error("role", "Somente Admin pode atribuir o papel 'Admin'.")
+        return cleaned
+
+
+class UserAdminAddForm(UserCreationForm):
+    """Add form that includes the non-model 'role' field."""
+    role = forms.ChoiceField(choices=ROLE_CHOICES, label="Papel", required=True)
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("_request", None)
+        super().__init__(*args, **kwargs)
+        if self.request and not self.request.user.is_superuser:
+            self.fields["role"].choices = [c for c in ROLE_CHOICES if c[0] != ROLE_ADMIN]
+
+
+# --- User Admin -----------------------------------------------------------
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    add_form = UserCreationForm
+    add_form = UserAdminAddForm
     form = UserAdminForm
     model = User
 
-    # Force visibility of error lists on this page only
     class Media:
-        css = {"all": ("admin/css/override.css",)}
+        css = {"all": ("admin/css/override.css",)}  # keep error lists visible
 
     list_display = (
         "cpf", "first_name", "last_name",
@@ -86,21 +196,17 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ("cpf", "first_name", "last_name", "email")
     list_filter = ("is_staff", "is_active", "is_blocked")
 
-    inlines = [BlockEventInline]
-
-    fieldsets = (
+    # Base fieldsets (no Bloqueio here; we add it conditionally below)
+    base_fieldsets = (
         (None, {"fields": ("cpf", "password")}),
         ("Informações pessoais", {"fields": ("first_name", "last_name", "email")}),
+        ("Papel", {"fields": ("role",)}),
         ("Almoço", {"fields": ("lunch_days_override_enabled", "lunch_days_override_mask")}),
-        ("Bloqueio", {
-            "fields": (
-                "is_blocked", "blocked_reason", "block_source", "blocked_at", "blocked_by",
-                "no_show_streak", "last_no_show_at", "last_pickup_at",
-            )
-        }),
-        ("Permissões", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Datas importantes", {"fields": ("last_login",)}),
     )
+    block_fieldset = ("Bloqueio", {"fields": BLOCK_FIELDS})
+    advanced_fieldset = ("Permissões (avançado)", {
+        "fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")
+    })
 
     add_fieldsets = (
         (None, {
@@ -108,55 +214,87 @@ class UserAdmin(BaseUserAdmin):
             "fields": (
                 "cpf", "first_name", "last_name", "email",
                 "password1", "password2",
-                "is_active", "is_staff", "is_superuser",
+                "role",
+                "is_active",
             ),
         }),
     )
 
+    # Inject request into forms
+    def get_form(self, request, obj=None, **kwargs):
+        form_class = super().get_form(request, obj, **kwargs)
+        class BoundForm(form_class):
+            def __init__(self_inner, *a, **kw):
+                kw["_request"] = request
+                super().__init__(*a, **kw)
+        return BoundForm
+
+    # Show fieldsets dynamically:
+    # - Bloqueio only for Students
+    # - Advanced only for superusers with ?show_advanced=1
+    def get_fieldsets(self, request, obj=None):
+        show_advanced = request.user.is_superuser and request.GET.get("show_advanced") == "1"
+        fieldsets = list(self.base_fieldsets)
+
+        # Compute effective role: from object if editing, else from POST (or default)
+        if obj:
+            eff_role = compute_role(obj)
+        else:
+            eff_role = request.POST.get("role") or request.GET.get("role") or ROLE_STUDENT
+            if eff_role not in {ROLE_STUDENT, ROLE_STAFF, ROLE_ADMIN}:
+                eff_role = ROLE_STUDENT
+
+        if eff_role == ROLE_STUDENT:
+            fieldsets.append(self.block_fieldset)
+
+        if show_advanced:
+            fieldsets.append(self.advanced_fieldset)
+
+        return tuple(fieldsets)
+
+    # Show BlockEvent inline only for Students
+    def get_inlines(self, request, obj):
+        if obj and compute_role(obj) == ROLE_STUDENT:
+            return [BlockEventInline]
+        return []
+
     def get_readonly_fields(self, request, obj=None):
         ro = set(super().get_readonly_fields(request, obj) or ())
-        ro.update({
-            "block_source", "blocked_at", "blocked_by",
-            "no_show_streak", "last_no_show_at", "last_pickup_at",
-        })
+        ro.update({"block_source", "blocked_at", "blocked_by", "no_show_streak", "last_no_show_at", "last_pickup_at"})
+        if not request.user.is_superuser:
+            ro.update({"is_superuser"})
         return tuple(sorted(ro))
 
     def save_model(self, request, obj, form, change):
         """
-        If 'is_blocked' flips, use model helpers to create proper BlockEvent entries.
+        Map 'role' to flags/groups with server-side enforcement.
         """
-        if change:
-            try:
-                old = type(obj).objects.get(pk=obj.pk)
-            except type(obj).DoesNotExist:
-                old = None
+        role = form.cleaned_data.get("role") or compute_role(obj)
+        staff_group = get_staff_group()
 
-            if old and (old.is_blocked != obj.is_blocked):
-                reason = form.cleaned_data.get("blocked_reason", "") if hasattr(form, "cleaned_data") else ""
-                if obj.is_blocked and not old.is_blocked:
-                    obj.block(source="manual", by=request.user, reason=reason)
-                    return
-                elif (not obj.is_blocked) and old.is_blocked:
-                    obj.unblock(by=request.user, reason=reason)
-                    return
+        if role == ROLE_ADMIN:
+            if not request.user.is_superuser:
+                form.add_error("role", "Somente Admin pode atribuir o papel 'Admin'.")
+                return
+            obj.is_superuser = True
+            obj.is_staff = True
+            obj.save()
+            return
 
-        super().save_model(request, obj, form, change)
+        if role == ROLE_STAFF:
+            obj.is_superuser = False
+            obj.is_staff = True
+            obj.save()
+            obj.groups.add(staff_group)
+            return
 
-    @admin.action(description="Bloquear selecionados (manual)")
-    def action_block(self, request, queryset):
-        for u in queryset:
-            if not u.is_blocked:
-                u.block(source="manual", by=request.user, reason="Bloqueio em massa via admin")
+        # ROLE_STUDENT
+        obj.is_superuser = False
+        obj.is_staff = False
+        obj.save()
+        obj.groups.remove(staff_group)
 
-    @admin.action(description="Desbloquear selecionados")
-    def action_unblock(self, request, queryset):
-        for u in queryset:
-            if u.is_blocked:
-                u.unblock(by=request.user, reason="Desbloqueio em massa via admin")
-
-    actions = ("action_block", "action_unblock")
-
-    # If form is invalid, emit a detailed error so it can't hide
+    # Loud logging if something goes sideways
     def render_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
         resp = super().render_change_form(request, context, add, change, form_url, obj)
         if request.method == "POST":
@@ -172,3 +310,18 @@ class UserAdmin(BaseUserAdmin):
                     if non_field:
                         messages.error(request, "Erro no formulário: " + "; ".join(non_field))
         return resp
+
+
+# --- Lock down Group admin to superusers only ----------------------------
+
+try:
+    admin.site.unregister(Group)
+except admin.sites.NotRegistered:
+    pass
+
+@admin.register(Group)
+class GroupAdmin(DjangoGroupAdmin):
+    def has_view_permission(self, request, obj=None):   return request.user.is_superuser
+    def has_add_permission(self, request):               return request.user.is_superuser
+    def has_change_permission(self, request, obj=None):  return request.user.is_superuser
+    def has_delete_permission(self, request, obj=None):  return request.user.is_superuser
