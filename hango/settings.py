@@ -62,6 +62,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.i18n",      # fine to keep
                 "apps.orders.context_processors.cart_count",
+                "apps.orders.context_processors.greeting",
             ],
         },
     },

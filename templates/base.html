@@ -45,7 +45,7 @@
         <div class="navbar-start">
           {% if request.user.is_authenticated %}
             <span class="navbar-item is-static">
-              Olá, {{ request.user.first_name|default:request.user.username }}
+              {{ greeting_pt }}, {{ request.user.first_name|default:request.user.username }} 
             </span>
 
             {# Cardápio: only for non-staff users #}
