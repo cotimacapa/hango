@@ -16,6 +16,6 @@ urlpatterns = [
     # Staff daily orders list
     path('list/', views.orders_list, name='list'),
 
-    # NEW — Student history (mock page; will wire view next)
-    path('history/', views.order_history, name='order_history'),
+    # Student history (URL name matches template usage: 'orders:history')
+    path('history/', views.order_history, name='history'),
 ]

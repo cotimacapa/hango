@@ -34,7 +34,7 @@
               <tr>
                 <td>{{ o.created_at|date:"d/m/Y H:i" }}</td>
                 <td>
-                  {% if o.lines.all %}
+                  {% if o.lines.exists %}
                     {% for ln in o.lines.all %}
                       {{ ln.qty }}× {{ ln.item.name }}{% if not forloop.last %}, {% endif %}
                     {% endfor %}
@@ -42,7 +42,13 @@
                     —
                   {% endif %}
                 </td>
-                <td>{{ o.delivered_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                  {% if o.delivered_at %}
+                    {{ o.delivered_at|date:"d/m/Y H:i" }}
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
                 <td>
                   {% if o.delivery_status == "delivered" %}
                     <span class="tag is-success">{% trans "Entregue" %}</span>

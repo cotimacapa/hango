@@ -363,3 +363,161 @@ a { color: var(--primary); }
    9) MISC HELPERS
    -------------------------------------------------------------------------- */
 .navbar .navbar-item { font-weight: 600; }
+
+/* === Dark mode table fixes (Bulma 0.9.x) =============================== */
+/* Keep text readable and use darker row/hover backgrounds.               */
+
+html[data-theme="dark"] .table {
+  color: #e5e7eb; /* keep text bright on dark rows */
+}
+
+html[data-theme="dark"] .table tbody tr {
+  background-color: rgba(255, 255, 255, 0.02); /* base row */
+}
+
+html[data-theme="dark"] .table.is-striped tbody tr:nth-child(2n) {
+  background-color: rgba(255, 255, 255, 0.04); /* striped rows */
+}
+
+html[data-theme="dark"] .table.is-hoverable tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important; /* hover row */
+}
+
+html[data-theme="dark"] .table.is-hoverable tbody tr:hover td,
+html[data-theme="dark"] .table.is-hoverable tbody tr:hover th {
+  color: #e5e7eb; /* don't let text dim on hover */
+}
+
+/* Optional: table links in dark mode */
+html[data-theme="dark"] .table a {
+  color: #cfe5ff;
+}
+html[data-theme="dark"] .table a:hover {
+  color: #a6ccff;
+}
+
+/* --- Splash: correct column alignment & spacing (no HTML changes) --- */
+
+/* Center LEFT + RIGHT columns as a pair; keep a clean gap */
+.splash-wrap {
+  align-items: center;                          /* centers both columns */
+  column-gap: clamp(2.5rem, 6vw, 5rem);
+  gap: clamp(2.5rem, 6vw, 5rem);                /* if grid/flex uses gap */
+}
+
+/* Undo the inner vertical centering that pulled text down */
+.splash-right {
+  display: block;                                /* reset any flex */
+  min-height: 0;                                 /* undo min-height */
+  padding-left: clamp(1.25rem, 3vw, 2.5rem);     /* space from divider */
+  max-width: 60ch;                               /* readable line length */
+}
+
+/* Tight, consistent stack — spacing only */
+.splash-right .title   { margin: 0 0 1.5rem 0; line-height: 1.15; }
+.splash-right .subtitle{ margin: 0 0 .9rem 0; }
+.splash-right p        { margin: 0; }
+
+/* Small screens: lighten padding without changing layout */
+@media (max-width: 900px){
+  .splash-right { padding-left: 1rem; max-width: 62ch; }
+}
+
+/* Splash — fix text colors for proper contrast (light & dark) */
+.splash-right .title { color: #0f172a; }                 /* light */
+html[data-theme="dark"] .splash-right .title { color: #e5e7eb; }  /* dark */
+
+.splash-right .subtitle { color: #334155; }              /* light */
+html[data-theme="dark"] .splash-right .subtitle { color: #cbd5e1; } /* dark */
+
+.splash-right p { color: #475569; }                      /* light body */
+html[data-theme="dark"] .splash-right p { color: #9aa5b1; }         /* dark body */
+
+/* (Optional) keep the divider visible but subtle in dark mode */
+html[data-theme="dark"] .splash-divider { background: rgba(255,255,255,.08); }
+
+/* ===================== MENU SCREEN TUNE-UP ===================== */
+/* Works with Bulma boxes/cards; no template changes required.    */
+
+/* Section heading/subheading contrast (safe site-wide) */
+html[data-theme="dark"] .section .title,
+html[data-theme="dark"] h1.title {
+  color: #e7eaf0;            /* bright but not pure white */
+}
+html[data-theme="dark"] .section .subtitle,
+html[data-theme="dark"] h2.subtitle {
+  color: #b8c2cc;            /* softer secondary text */
+}
+
+/* Cards / boxes that hold each dish */
+html[data-theme="dark"] .box,
+html[data-theme="dark"] .card {
+  background: rgba(255,255,255,0.04);   /* lift surface a bit */
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+
+html[data-theme="dark"] .box:hover,
+html[data-theme="dark"] .card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.55);
+}
+
+/* Title + meta inside the card */
+html[data-theme="dark"] .box .title,
+html[data-theme="dark"] .card .title {
+  color: #e8edf4;
+}
+html[data-theme="dark"] .box .subtitle,
+html[data-theme="dark"] .card .subtitle,
+html[data-theme="dark"] .box .content,
+html[data-theme="dark"] .card .content {
+  color: #c4cdd7;
+}
+
+/* “GRÁTIS” tag and any success-looking tag */
+html[data-theme="dark"] .tag.is-success,
+html[data-theme="dark"] .tag.is-primary {
+  color: #0b2413;
+  background: #4ade80;                  /* green-400 */
+  border-color: transparent;
+}
+html[data-theme="dark"] .tag.is-success.is-light,
+html[data-theme="dark"] .tag.is-primary.is-light {
+  color: #1a2e22;
+  background: #86efac;                  /* green-300 */
+}
+
+/* Primary/affirmative buttons: tighter contrast & focus ring */
+html[data-theme="dark"] .button.is-primary,
+html[data-theme="dark"] .button.is-success {
+  background-color: #136b2b;            /* richer green */
+  border-color: rgba(255,255,255,0.1);
+}
+html[data-theme="dark"] .button.is-primary:hover,
+html[data-theme="dark"] .button.is-success:hover {
+  filter: brightness(1.07);
+}
+html[data-theme="dark"] .button:focus-visible {
+  outline: 2px solid #86efac;
+  outline-offset: 2px;
+}
+
+/* Secondary button legibility on dark */
+html[data-theme="dark"] .button.is-light {
+  background: rgba(255,255,255,0.06);
+  color: #e5e7eb;
+  border-color: rgba(255,255,255,0.12);
+}
+html[data-theme="dark"] .button.is-light:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Nice breathing room between cards (grid/columns agnostic) */
+.menu-cards,
+.section .columns {
+  row-gap: 1.25rem;
+}
+
