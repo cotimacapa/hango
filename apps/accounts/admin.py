@@ -7,6 +7,10 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin, GroupAdmin as DjangoGroupAdmin
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import PermissionDenied
+from django.db.models import Case, When, Value, IntegerField, Exists, OuterRef
+from django.utils.html import format_html
+from django.templatetags.static import static
 
 from .models import User, BlockEvent
 from .forms import UserCreationForm, UserChangeForm
@@ -85,6 +89,22 @@ class BlockEventInline(admin.TabularInline):
     def has_delete_permission(self, request, obj=None): return False
 
 
+# --- Custom widget: disable specific choices -----------------------------
+
+class RoleSelect(forms.Select):
+    def __init__(self, *args, disabled_values=None, **kwargs):
+        self.disabled_values = set(disabled_values or [])
+        super().__init__(*args, **kwargs)
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        if value in self.disabled_values:
+            option["attrs"]["disabled"] = True
+            option["attrs"]["aria-disabled"] = "true"
+            option["attrs"]["title"] = "Somente Admin pode atribuir este papel."
+        return option
+
+
 # --- Admin forms ---------------------------------------------------------
 
 class UserAdminForm(UserChangeForm):
@@ -141,9 +161,11 @@ class UserAdminForm(UserChangeForm):
             )
             self.initial["lunch_days_override_mask"] = 0
 
-        # If editor is not superuser, drop 'Admin' from choices
+        # Non-superusers: show 'Admin' but disabled (cannot select)
         if self.request and not self.request.user.is_superuser:
-            self.fields["role"].choices = [c for c in ROLE_CHOICES if c[0] != ROLE_ADMIN]
+            self.fields["role"].widget = RoleSelect(
+                choices=self.fields["role"].choices, disabled_values=[ROLE_ADMIN]
+            )
 
         # Remove block-related fields when target user is not a Student
         if eff_role != ROLE_STUDENT:
@@ -171,8 +193,11 @@ class UserAdminAddForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("_request", None)
         super().__init__(*args, **kwargs)
+        # Non-superusers: show 'Admin' but disabled
         if self.request and not self.request.user.is_superuser:
-            self.fields["role"].choices = [c for c in ROLE_CHOICES if c[0] != ROLE_ADMIN]
+            self.fields["role"].widget = RoleSelect(
+                choices=self.fields["role"].choices, disabled_values=[ROLE_ADMIN]
+            )
 
 
 # --- User Admin -----------------------------------------------------------
@@ -190,7 +215,7 @@ class UserAdmin(BaseUserAdmin):
         "cpf", "first_name", "last_name",
         "display_role",           # Papel (Aluno/Equipe/Admin)
         "is_active",
-        "display_blocked",        # <-- Bloqueado para pedir (with N/A)
+        "display_blocked",        # icons + custom sort
         "no_show_streak",
         "human_lunch_days_override",
     )
@@ -204,12 +229,25 @@ class UserAdmin(BaseUserAdmin):
         m = {ROLE_STUDENT: "Aluno", ROLE_STAFF: "Equipe", ROLE_ADMIN: "Admin"}
         return m.get(compute_role(obj), "—")
 
-    @admin.display(description="Bloqueado para pedir", ordering="is_blocked")
+    @admin.display(description="Bloqueado para pedir", ordering="blocked_sort_key")
     def display_blocked(self, obj: User) -> str:
-        # Show N/A for non-students; only students are blockable for ordering
-        if compute_role(obj) != ROLE_STUDENT:
-            return "N/A"
-        return "Sim" if getattr(obj, "is_blocked", False) else "Não"
+        role = compute_role(obj)
+        if role != ROLE_STUDENT:
+            # Solid white dot
+            return format_html(
+                '<span title="N/A" aria-label="N/A" '
+                'style="display:inline-block;width:13px;height:13px;border-radius:50%;'
+                'background:#fff;border:1px solid rgba(0,0,0,.25);vertical-align:middle;"></span>'
+            )
+        if getattr(obj, "is_blocked", False):
+            return format_html(
+                '<img src="{}" alt="Sim" class="icon-yes" />',
+                static("admin/img/icon-yes.svg"),
+            )
+        return format_html(
+            '<img src="{}" alt="Não" class="icon-no" />',
+            static("admin/img/icon-no.svg"),
+        )
 
     # Base fieldsets (no Bloqueio here; we add it conditionally below)
     base_fieldsets = (
@@ -247,8 +285,8 @@ class UserAdmin(BaseUserAdmin):
     # Dynamic fieldsets
     def get_fieldsets(self, request, obj=None):
         show_advanced = request.user.is_superuser and request.GET.get("show_advanced") == "1"
-        fieldsets = list(self.base_fieldsets)
 
+        # Effective role of the TARGET user (being viewed/edited)
         if obj:
             eff_role = compute_role(obj)
         else:
@@ -256,11 +294,26 @@ class UserAdmin(BaseUserAdmin):
             if eff_role not in {ROLE_STUDENT, ROLE_STAFF, ROLE_ADMIN}:
                 eff_role = ROLE_STUDENT
 
+        # If a NON-superuser is viewing an Admin user, show read-only label instead of the form field
+        if obj and obj.is_superuser and not request.user.is_superuser:
+            papel_fields = ("display_role",)   # shows “Admin” nicely
+        else:
+            papel_fields = ("role",)
+
+        fieldsets = [
+            (None, {"fields": ("cpf", "password")}),
+            ("Informações pessoais", {"fields": ("first_name", "last_name", "email")}),
+            ("Papel", {"fields": papel_fields}),
+            ("Almoço", {"fields": ("lunch_days_override_enabled", "lunch_days_override_mask")}),
+        ]
+
         if eff_role == ROLE_STUDENT:
-            fieldsets.append(self.block_fieldset)
+            fieldsets.append(("Bloqueio", {"fields": BLOCK_FIELDS}))
 
         if show_advanced:
-            fieldsets.append(self.advanced_fieldset)
+            fieldsets.append(("Permissões (avançado)", {
+                "fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")
+            }))
 
         return tuple(fieldsets)
 
@@ -275,12 +328,75 @@ class UserAdmin(BaseUserAdmin):
         ro.update({"block_source", "blocked_at", "blocked_by", "no_show_streak", "last_no_show_at", "last_pickup_at"})
         if not request.user.is_superuser:
             ro.update({"is_superuser"})
+            # When staff views an Admin, the Papel field is a computed label
+            if obj and getattr(obj, "is_superuser", False):
+                ro.add("display_role")
         return tuple(sorted(ro))
+
+    def get_queryset(self, request):
+        """
+        Annotate a custom sort key so 'Bloqueado para pedir' orders as:
+        N/A (0) < Não (1) < Sim (2).
+        N/A covers: superusers, is_staff, users in Staff/Equipe group, or users
+        granted operator perms directly.
+        """
+        qs = super().get_queryset(request)
+
+        # user in Staff/Equipe group?
+        staff_group_exists = Exists(
+            Group.objects.filter(name__in=["Staff", "Equipe"], user__pk=OuterRef("pk"))
+        )
+        # user has any operator permission directly?
+        direct_op_perm_exists = Exists(
+            User.objects.filter(pk=OuterRef("pk"), user_permissions__codename__in=OP_PERMS)
+        )
+
+        qs = qs.annotate(
+            blocked_sort_key=Case(
+                When(is_superuser=True, then=Value(0)),
+                When(is_staff=True, then=Value(0)),
+                When(staff_group_exists, then=Value(0)),
+                When(direct_op_perm_exists, then=Value(0)),
+                When(is_blocked=True, then=Value(2)),   # Student & blocked
+                default=Value(1),                       # Student & not blocked
+                output_field=IntegerField(),
+            )
+        )
+
+        # NOTE: we no longer exclude superusers here — staff can see Admins,
+        # but they won't be able to edit/delete them (see permissions below).
+        return qs
+
+    # ---- Permissions: staff can VIEW admin users, but cannot CHANGE/DELETE --
+
+    def _obj_is_admin(self, obj):
+        return bool(obj and getattr(obj, "is_superuser", False))
+
+    def has_view_permission(self, request, obj=None):
+        # Allow viewing anything the user normally can; do not block Admin objects.
+        return super().has_view_permission(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        if not request.user.is_superuser and self._obj_is_admin(obj):
+            # Read-only view for staff when opening an Admin user
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if not request.user.is_superuser and self._obj_is_admin(obj):
+            return False
+        return super().has_delete_permission(request, obj)
 
     def save_model(self, request, obj, form, change):
         """
         Map 'role' to flags/groups with server-side enforcement.
+        Also prevents staff from modifying Admin users.
         """
+        if change and not request.user.is_superuser:
+            old = type(obj).objects.filter(pk=obj.pk).only("is_superuser").first()
+            if old and old.is_superuser:
+                raise PermissionDenied("Apenas Admin pode editar um usuário Admin.")
+
         role = form.cleaned_data.get("role") or compute_role(obj)
         staff_group = get_staff_group()
 
@@ -324,7 +440,7 @@ class UserAdmin(BaseUserAdmin):
         return resp
 
 
-# --- Lock down Group admin to superusers only ----------------------------
+# --- Groups: visible to Equipe, editable only by Admin -------------------
 
 try:
     admin.site.unregister(Group)
@@ -333,7 +449,23 @@ except admin.sites.NotRegistered:
 
 @admin.register(Group)
 class GroupAdmin(DjangoGroupAdmin):
-    def has_view_permission(self, request, obj=None):   return request.user.is_superuser
-    def has_add_permission(self, request):               return request.user.is_superuser
-    def has_change_permission(self, request, obj=None):  return request.user.is_superuser
-    def has_delete_permission(self, request, obj=None):  return request.user.is_superuser
+    # Equipe (is_staff) and Admin can open the list and detail pages
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser or request.user.is_staff
+
+    # Only Admin can add/change/delete groups
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    # No bulk actions for Equipe (prevents any mass ops)
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.user.is_superuser:
+            return {}
+        return actions
