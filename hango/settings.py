@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.menu.apps.MenuConfig",
     "apps.orders",                        # if there is an AppConfig class, prefer "apps.orders.apps.OrdersConfig"
     "apps.classes.apps.ClassesConfig",
+    "apps.calendar.apps.CalendarConfig",
 ]
 
 # ── Middleware ────────────────────────────────────────────────────────────────

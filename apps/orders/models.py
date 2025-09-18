@@ -25,6 +25,9 @@ class Order(models.Model):
         ("undelivered", "Não Entregue"),  # adicionado para casar com o fluxo atual
     ]
 
+    # NEW: estados que NÃO contam para a regra "1 pedido por dia"
+    CANCELED_STATUSES = ("canceled",)
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name="Usuário",
@@ -42,7 +45,9 @@ class Order(models.Model):
         choices=DELIVERY_STATUS,
         default="pending",
     )
-    service_day = models.DateField("Dia de atendimento", default=timezone.localdate)
+    # IMPORTANTE: a aplicação deve preencher este campo com o "próximo dia elegível".
+    # O default abaixo evita nulos em criações manuais, mas não substitui a regra.
+    service_day = models.DateField("Dia de atendimento", default=timezone.localdate, db_index=True)
     pickup_slot = models.DateTimeField("Horário de retirada", null=True, blank=True)
     created_at = models.DateTimeField("Criado em", default=timezone.now)
     delivered_at = models.DateTimeField("Entregue em", null=True, blank=True)
@@ -62,6 +67,13 @@ class Order(models.Model):
             ("can_view_kitchen", "Can view kitchen board"),
             ("can_manage_delivery", "Can mark delivered / no-show"),
             ("can_view_orders", "Can view daily orders list"),
+        ]
+        # NEW: 1 pedido ativo por estudante por dia (o app libera em cancelamento)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "service_day"],
+                name="one_order_per_student_per_service_day",
+            )
         ]
 
     def __str__(self):
@@ -111,6 +123,24 @@ class Order(models.Model):
                 u.block(source="auto", by=None, reason=f"{auto_block_threshold} faltas consecutivas")
             else:
                 u.save(update_fields=["no_show_streak", "last_no_show_at"])
+        return self
+
+    # NEW: cancelar pedido liberando o "slot" do dia
+    def cancel(self, *, by=None, reason: str = ""):
+        """
+        Cancela o pedido e libera o dia para nova solicitação.
+        Regra: ao cancelar, definimos service_day=None para não colidir com a
+        restrição única (múltiplos NULLs são permitidos).
+        """
+        if self.status == "canceled":
+            return self
+        self.status = "canceled"
+        # Mantém delivery_status coerente com cancelamento
+        if self.delivery_status != "undelivered":
+            self.delivery_status = "undelivered"
+        # Libera o dia para permitir novo pedido do estudante (antes da data)
+        self.service_day = None
+        self.save(update_fields=["status", "delivery_status", "service_day"])
         return self
         
 

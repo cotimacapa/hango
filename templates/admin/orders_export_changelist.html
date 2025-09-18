@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="card" style="max-width:600px;">
+    <div class="card-body">
+      <h1 class="title is-4" style="margin-bottom:.75rem;">Listagem de pedidos</h1>
+      <p class="help" style="margin-bottom:.75rem;">
+        Escolha a data de atendimento e exporte a lista com totais e pedidos.
+      </p>
+
+      <form method="get" action="" class="box" style="padding:1rem;">
+        <div class="field">
+          <label class="label" for="id_data">Data</label>
+          <div class="control">
+            <input type="date" id="id_data" name="data" value="{{ target_day_str }}">
+          </div>
+        </div>
+
+        <div class="buttons" style="margin-top:.5rem;">
+          <button class="button is-primary" type="submit" name="export" value="1">
+            Exportar CSV
+          </button>
+        </div>
+      </form>
+
+      <p class="help">
+        Data padrão: {{ target_day_human }} (próximo dia elegível).
+      </p>
+    </div>
+  </div>
+{% endblock %}
