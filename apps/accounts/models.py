@@ -66,6 +66,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff   = models.BooleanField("Equipe/Staff", default=False)
     date_joined = models.DateTimeField("Data de cadastro", auto_now_add=True)
 
+    # ⬇️ NEW: Exigir troca de senha no próximo login (fluxo temporário)
+    must_change_password = models.BooleanField(
+        "Deve trocar a senha no próximo login",
+        default=False,
+        help_text="Se marcado, ao autenticar o usuário será redirecionado para definir uma nova senha."
+    )
+
     # ⬇️ NOVOS CAMPOS: sobrescrita individual de dias de almoço
     lunch_days_override_enabled = models.BooleanField(
         "Ativar sobrescrita individual de dias de almoço",

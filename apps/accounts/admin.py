@@ -249,7 +249,7 @@ class UserAdmin(BaseUserAdmin):
             static("admin/img/icon-no.svg"),
         )
 
-    # Base fieldsets (no Bloqueio here; we add it conditionally below)
+    # Base fieldsets (no Bloqueio here; added conditionally)
     base_fieldsets = (
         (None, {"fields": ("cpf", "password")}),
         ("Informações pessoais", {"fields": ("first_name", "last_name", "email")}),
@@ -308,6 +308,8 @@ class UserAdmin(BaseUserAdmin):
         ]
 
         if eff_role == ROLE_STUDENT:
+            # Show password policy knob for students only
+            fieldsets.append(("Senha", {"fields": ("must_change_password",)}))
             fieldsets.append(("Bloqueio", {"fields": BLOCK_FIELDS}))
 
         if show_advanced:
@@ -391,6 +393,7 @@ class UserAdmin(BaseUserAdmin):
         """
         Map 'role' to flags/groups with server-side enforcement.
         Also prevents staff from modifying Admin users.
+        Additionally: on ADD of a Student, default must_change_password=True.
         """
         if change and not request.user.is_superuser:
             old = type(obj).objects.filter(pk=obj.pk).only("is_superuser").first()
@@ -400,6 +403,7 @@ class UserAdmin(BaseUserAdmin):
         role = form.cleaned_data.get("role") or compute_role(obj)
         staff_group = get_staff_group()
 
+        # Admin
         if role == ROLE_ADMIN:
             if not request.user.is_superuser:
                 form.add_error("role", "Somente Admin pode atribuir o papel 'Admin'.")
@@ -409,6 +413,7 @@ class UserAdmin(BaseUserAdmin):
             obj.save()
             return
 
+        # Staff
         if role == ROLE_STAFF:
             obj.is_superuser = False
             obj.is_staff = True
@@ -416,9 +421,12 @@ class UserAdmin(BaseUserAdmin):
             obj.groups.add(staff_group)
             return
 
-        # ROLE_STUDENT
+        # Student
         obj.is_superuser = False
         obj.is_staff = False
+        # On first creation of a Student, force password change by default
+        if not change and not obj.must_change_password:
+            obj.must_change_password = True
         obj.save()
         obj.groups.remove(staff_group)
 

@@ -11,6 +11,9 @@ urlpatterns = [
     path('', include('apps.menu.urls')),
     path('orders/', include('apps.orders.urls')),
 
+    # OVERRIDE: password change → our view clears must_change_password + flashes success
+    path('accounts/password_change/', accounts_views.ForcePasswordChangeView.as_view(), name='password_change'),
+
     # Auth (login/logout/password reset, etc.)
     path('accounts/', include('django.contrib.auth.urls')),
 

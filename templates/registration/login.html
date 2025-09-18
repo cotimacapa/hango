@@ -3,30 +3,47 @@
 {% block title %}Entrar - Hango{% endblock %}
 {% block content %}
 <div class="columns is-centered">
-  <div class="column is-5">
-    <div class="box">
-      <h1 class="title is-4">Entrar</h1>
+  <div class="column is-5" style="max-width:380px;">  {# ~30% narrower #}
+    <div class="box has-text-centered login-card">
+      <h1 class="title is-4" style="margin-bottom:1rem;">Entrar</h1>
 
       {% if form.errors %}
         <div class="notification is-danger">Verifique seu usuário e senha.</div>
       {% endif %}
 
-      <form method="post" action="{% url 'login' %}">
+      <form method="post" action="{% url 'login' %}" novalidate>
         {% csrf_token %}
         {{ form.non_field_errors }}
 
-        <div class="field">
-          <label class="label" for="{{ form.username.id_for_label }}">Usuário</label>
+        <div class="field" style="margin-bottom:.75rem;">
           <div class="control">
-            {{ form.username }}
+            <input
+              class="input login-input"
+              type="text"
+              name="{{ form.username.html_name }}"
+              id="{{ form.username.id_for_label }}"
+              value="{{ form.username.value|default_if_none:'' }}"
+              placeholder="CPF"
+              autocomplete="username"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              style="text-align:center"
+              required>
           </div>
           {{ form.username.errors }}
         </div>
 
-        <div class="field">
-          <label class="label" for="{{ form.password.id_for_label }}">Senha</label>
+        <div class="field" style="margin-bottom:.9rem;">
           <div class="control">
-            {{ form.password }}
+            <input
+              class="input login-input"
+              type="password"
+              name="{{ form.password.html_name }}"
+              id="{{ form.password.id_for_label }}"
+              placeholder="Senha"
+              autocomplete="current-password"
+              style="text-align:center"
+              required>
           </div>
           {{ form.password.errors }}
         </div>
@@ -34,13 +51,40 @@
         <!-- Always send user through the post-login router -->
         <input type="hidden" name="next" value="{% url 'post_login_redirect' %}">
 
-        <button class="button is-primary" type="submit">Entrar</button>
+        <div class="field" style="margin-top:.25rem;">
+          <button class="button is-primary login-button" type="submit">
+            Entrar
+          </button>
+        </div>
       </form>
 
-      {# Optional password reset link:
-      <p class="mt-3"><a href="{% url 'password_reset' %}">Esqueci minha senha</a></p>
-      #}
+      <p class="help has-text-centered" style="margin-top:.5rem;">
+        Não consegue entrar? Entre em contato com nossa equipe para receber uma senha temporária.
+      </p>
     </div>
   </div>
 </div>
+
+<style>
+  /* ~30% smaller box + a touch less padding */
+  .login-card { padding: 1.0rem 1.0rem; }
+
+  /* Thinner fields */
+  .login-input {
+    height: 2.2rem;          /* down from Bulma's taller variants */
+    padding: .45rem .85rem;
+    font-size: 0.95rem;
+  }
+
+  /* Subtle placeholder that works in light/dark */
+  .login-card .input::placeholder { opacity: 1; }
+
+  /* Slightly smaller, centered submit button */
+  .login-button {
+    min-width: 9rem;
+    height: 2.15rem;
+    padding: 0 .9rem;
+    font-size: 0.95rem;
+  }
+</style>
 {% endblock %}
