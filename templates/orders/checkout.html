@@ -5,8 +5,20 @@
 {% block content %}
   <h1 class="title">Finalizar Pedido</h1>
 
+  {% if service_day %}
+    <p class="pedido-dia">
+      Pedido para dia <strong class="pedido-dia__date">{{ service_day|date:"j \\d\\e F" }}</strong>
+    </p>
+  {% endif %}
+
   {% if lines %}
-    <table class="table is-fullwidth">
+    {% if already_ordered_for_day %}
+      <div class="notification is-warning is-light" style="margin-top:.25rem;">
+        Você já possui um pedido para este dia.
+      </div>
+    {% endif %}
+
+    <table class="table is-fullwidth" style="margin-top:.5rem;">
       <thead>
         <tr>
           <th>Item</th>
@@ -27,7 +39,11 @@
       {% csrf_token %}
       <div class="buttons mt-4">
         <a class="button is-light" href="{% url 'orders:cart' %}">Voltar para o carrinho</a>
-        <button type="submit" class="button is-primary">Fazer pedido</button>
+        {% if already_ordered_for_day %}
+          <button type="submit" class="button is-primary" disabled>Fazer pedido</button>
+        {% else %}
+          <button type="submit" class="button is-primary">Fazer pedido</button>
+        {% endif %}
       </div>
     </form>
   {% else %}
@@ -36,4 +52,25 @@
       <a class="button is-light" href="{% url 'orders:cart' %}">Ir para o carrinho</a>
     </div>
   {% endif %}
+
+  <style>
+    /* Badge “Pedido para dia …” — keep text fully readable in both themes */
+    .pedido-dia{
+      display:inline-block;
+      font-size:.95rem;
+      margin:.25rem 0 .75rem;
+      padding:.35rem .8rem;
+      border-radius:999px;
+      background:rgba(0,0,0,.06);   /* light */
+      color:inherit;                 /* inherit normal text color */
+    }
+    :root[data-theme="dark"] .pedido-dia{
+      background:rgba(255,255,255,.10); /* a touch brighter in dark mode */
+      color:inherit;
+    }
+    .pedido-dia__date{
+      color:inherit;        /* prevent “faded” date */
+      font-weight:700;
+    }
+  </style>
 {% endblock %}

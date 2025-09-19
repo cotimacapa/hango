@@ -521,3 +521,30 @@ html[data-theme="dark"] .button.is-light:hover {
   row-gap: 1.25rem;
 }
 
+/* Order service-day pill: make the date readable in both themes */
+.tag.order-service-date{
+  --badge-bg: #eef2f7;   /* light */
+  --badge-fg: #1f2937;
+  background: var(--badge-bg);
+  color: var(--badge-fg);
+  border: 0;
+}
+:root[data-theme="dark"] .tag.order-service-date{
+  --badge-bg: #2a2f36;   /* dark */
+  --badge-fg: #f3f4f6;
+}
+
+/* If inner date was muted by Bulma helpers, override */
+.tag.order-service-date .has-text-grey,
+.tag.order-service-date .has-text-grey-light{
+  color: var(--badge-fg) !important;
+  opacity: 1 !important;
+}
+
+/* Works even if the inner span has no helper classes */
+.tag.order-service-date > span:last-child{
+  color: var(--badge-fg) !important;
+  font-weight: 700;
+  opacity: 1 !important;
+}
+

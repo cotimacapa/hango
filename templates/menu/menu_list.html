@@ -6,6 +6,20 @@
   <h1 class="title">Cardápio de Hoje</h1>
   <p class="subtitle">Refeições são gratuitas para alunos.</p>
 
+  {# Badge with the next pickup date (if provided in context) #}
+  {% if service_day %}
+    <p class="pedido-dia">
+      Pedido para dia <strong>{{ service_day|date:"j \\d\\e F" }}</strong>
+    </p>
+  {% endif %}
+
+  {# Soft warning if student already has an order for that day #}
+  {% if already_ordered_for_day %}
+    <div class="notification is-warning is-light" style="margin-top:.25rem;">
+      Você já possui um pedido para este dia.
+    </div>
+  {% endif %}
+
   {% with items_list=object_list|default:items %}
     {% if items_list %}
       <div class="columns is-multiline">
@@ -21,9 +35,15 @@
               </div>
               <div class="card-content">
                 <div class="buttons">
-                  <a href="{% url 'orders:add' item.id %}" class="button is-small is-primary">
-                    Adicionar ao carrinho
-                  </a>
+                  {% if already_ordered_for_day %}
+                    <button class="button is-small is-primary" disabled title="Você já possui um pedido para este dia.">
+                      Adicionar ao carrinho
+                    </button>
+                  {% else %}
+                    <a href="{% url 'orders:add' item.id %}" class="button is-small is-primary">
+                      Adicionar ao carrinho
+                    </a>
+                  {% endif %}
                   <a href="{% url 'orders:cart' %}" class="button is-small is-light">
                     Ver carrinho
                   </a>
@@ -37,5 +57,18 @@
       <p class="has-text-grey">Nenhum item no cardápio ainda.</p>
     {% endif %}
   {% endwith %}
+
+  <style>
+    .pedido-dia {
+      display: inline-block;
+      font-size: .95rem;
+      margin: .25rem 0 .75rem;
+      padding: .35rem .6rem;
+      border-radius: 999px;
+      background: rgba(0,0,0,.06);
+    }
+    :root[data-theme="dark"] .pedido-dia {
+      background: rgba(255,255,255,.08);
+    }
+  </style>
 {% endblock %}
-      

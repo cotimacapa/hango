@@ -111,5 +111,14 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/post-login/"
 LOGOUT_REDIRECT_URL = "/"
 
+# ── Lunch day resolution (explicit relation/field for turma days) ────────────
+# If your relation is actually plural (M2M), change to "turmas".
+LUNCH_CLASS_REL = "student_classes"
+# Change to the real field on the related class storing the weekday bitmask,
+# e.g. "dias_semana_mask" if that's what your model uses.
+LUNCH_CLASS_MASK_FIELD = "lunch_days_mask"
+# Fallback (Mon–Fri) if nothing is found
+DEFAULT_LUNCH_DAYS_MASK = 0b11111
+
 # ── Django defaults ───────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

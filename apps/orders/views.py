@@ -6,17 +6,23 @@ from datetime import datetime
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden  # UPDATED
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from django.core.exceptions import ValidationError
 
 from apps.menu.models import Item
 from .models import Order, OrderItem
 
-# NEW: import the order services (step 2.2)
-from apps.orders.services import mark_no_show, mark_picked_up  # NEW
+# Order services (status helpers + scheduling & daily limit)
+from apps.orders.services import (
+    mark_no_show,
+    mark_picked_up,
+    next_eligible_service_day,
+    ensure_student_daily_limit,
+)
 
 
 # ---------------------------------------------------------------------
@@ -113,7 +119,21 @@ def _clear_session_cart(request: HttpRequest) -> None:
 @login_required
 def view_cart(request: HttpRequest) -> HttpResponse:
     lines = _cart_lines(request)
-    return render(request, "orders/cart.html", {"lines": lines})
+    # NEW: show the “pedido para …” badge and disable button when already ordered
+    service_day = next_eligible_service_day(request.user)
+    already_ordered_for_day = Order.objects.filter(
+        user=request.user, service_day=service_day
+    ).exclude(status__in=Order.CANCELED_STATUSES).exists()
+
+    return render(
+        request,
+        "orders/cart.html",
+        {
+            "lines": lines,
+            "service_day": service_day,
+            "already_ordered_for_day": already_ordered_for_day,
+        },
+    )
 
 
 @require_http_methods(["POST", "GET"])
@@ -179,35 +199,61 @@ def checkout(request: HttpRequest) -> HttpResponse:
         if not lines:
             # Redireciona silenciosamente; a página do carrinho já informa vazio.
             return redirect("orders:cart")
+
+        # NEW: compute and pass service_day + already flag so the badge renders
+        service_day = next_eligible_service_day(request.user)
+        already_ordered_for_day = Order.objects.filter(
+            user=request.user, service_day=service_day
+        ).exclude(status__in=Order.CANCELED_STATUSES).exists()
+
         return render(
             request,
             "orders/checkout.html",
-            {"lines": lines, "total_qty": total_qty, "total_price": total_price},
+            {
+                "lines": lines,
+                "total_qty": total_qty,
+                "total_price": total_price,
+                "service_day": service_day,
+                "already_ordered_for_day": already_ordered_for_day,
+            },
         )
 
-    # NEW: Enforce blocking at order time
-    if getattr(request.user, "is_blocked", False):  # NEW
-        messages.error(request, "Seu usuário está bloqueado para fazer pedidos. Procure a equipe.")  # NEW
-        return redirect("orders:cart")  # NEW
+    # Gate: usuário bloqueado não pode pedir
+    if getattr(request.user, "is_blocked", False):
+        messages.error(request, "Seu usuário está bloqueado para fazer pedidos. Procure a equipe.")
+        return redirect("orders:cart")
 
-    # NEW: Forbid operators (staff or superusers) from placing orders — server-side gate
-    if request.user.is_staff or request.user.is_superuser:  # NEW
-        return HttpResponseForbidden("Operadores não podem realizar pedidos.")  # NEW
+    # Gate: operadores não podem pedir (staff/superuser)
+    if request.user.is_staff or request.user.is_superuser:
+        return HttpResponseForbidden("Operadores não podem realizar pedidos.")
 
     if not lines:
         # Evita mensagens extras; apenas volta.
         return redirect("orders:cart")
 
-    with transaction.atomic():
-        # Defaults do modelo lidam com campos obrigatórios.
-        order = Order.objects.create(user=request.user)
+    # Compute the service day (amanhã elegível) and enforce 1 por dia
+    service_day = next_eligible_service_day(request.user)
+    try:
+        ensure_student_daily_limit(request.user, service_day, OrderModel=Order)
+    except ValidationError as e:
+        messages.error(request, e.messages[0] if getattr(e, "messages", None) else "Você já possui um pedido para este dia.")
+        return redirect("orders:cart")
 
-        for l in lines:
-            try:
-                item_obj = Item.objects.get(pk=int(l.key))
-            except (Item.DoesNotExist, ValueError):
-                item_obj = None
-            OrderItem.objects.create(order=order, item=item_obj, qty=l.qty)
+    with transaction.atomic():
+        try:
+            order = Order.objects.create(user=request.user, service_day=service_day)
+
+            for l in lines:
+                try:
+                    item_obj = Item.objects.get(pk=int(l.key))
+                except (Item.DoesNotExist, ValueError):
+                    item_obj = None
+                OrderItem.objects.create(order=order, item=item_obj, qty=l.qty)
+
+        except IntegrityError:
+            # Race condition against the unique constraint (user, service_day)
+            messages.error(request, "Você já possui um pedido para este dia.")
+            return redirect("orders:cart")
 
     _clear_session_cart(request)
     messages.success(request, "Pedido realizado com sucesso.")
@@ -217,9 +263,9 @@ def checkout(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 @login_required
 def success(request: HttpRequest, order_id: int) -> HttpResponse:
-    # NEW: ensure the order being shown belongs to the current user
-    order = get_object_or_404(Order, pk=order_id, user=request.user)  # NEW
-    return render(request, "orders/success.html", {"order_id": order.pk})  # UPDATED
+    # ensure the order being shown belongs to the current user
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
+    return render(request, "orders/success.html", {"order_id": order.pk})  # keep minimal for now
 
 
 # ---------------------------------------------------------------------
@@ -277,11 +323,11 @@ def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> Http
 
     if state == "delivered":
         # UPDATED: use the helper (also sets delivered_at/by and resets streak)
-        mark_picked_up(order, by=request.user)  # NEW
+        mark_picked_up(order, by=request.user)
         msg = "Marcado como entregue."
     elif state == "undelivered":
         # UPDATED: use the helper (sets no_show/undelivered, increments streak, may auto-block)
-        mark_no_show(order)  # NEW
+        mark_no_show(order)
         msg = "Marcado como não entregue."
     else:
         messages.error(request, "Status inválido.")
@@ -300,7 +346,7 @@ def set_delivery_status(request: HttpRequest, order_id: int, state: str) -> Http
 @permission_required("orders.can_view_orders", raise_exception=True)
 def orders_list(request: HttpRequest) -> HttpResponse:
     """
-    Página de Pedidos: mostra todos os pedidos *não pendentes* em um dia.
+    Página de Pedidos: mostra todos os pedidos de um dia (pendentes, entregues e não entregues).
     Padrão: hoje. Selecione outra data via ?date=YYYY-MM-DD.
     """
     qdate = request.GET.get("date")
@@ -312,9 +358,9 @@ def orders_list(request: HttpRequest) -> HttpResponse:
     else:
         selected_date = timezone.localdate()
 
+    # include ALL statuses for the chosen service day
     orders = (
         Order.objects.filter(service_day=selected_date)
-        .exclude(delivery_status="pending")
         .select_related("user")
         .prefetch_related("lines__item")
         .order_by("-created_at")

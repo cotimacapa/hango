@@ -7,7 +7,19 @@
   <p class="subtitle">Refeições são gratuitas; limites podem ser aplicados por categoria a cada dia.</p>
 
   {% if lines %}
-    <table class="table is-fullwidth">
+    {% if service_day %}
+      <p class="pedido-dia">
+        Pedido para dia <strong>{{ service_day|date:"j \\d\\e F" }}</strong>
+      </p>
+    {% endif %}
+
+    {% if already_ordered_for_day %}
+      <div class="notification is-warning is-light" style="margin-top:.25rem;">
+        Você já possui um pedido para este dia.
+      </div>
+    {% endif %}
+
+    <table class="table is-fullwidth" style="margin-top:.5rem;">
       <thead>
         <tr>
           <th>Item</th>
@@ -33,7 +45,11 @@
 
     <div class="buttons mt-4">
       <a class="button is-light" href="{% url 'menu:list' %}">Voltar para o cardápio</a>
-      <a class="button is-primary" href="{% url 'orders:checkout' %}">Pedir</a>
+      {% if already_ordered_for_day %}
+        <button class="button is-primary" disabled>Pedir</button>
+      {% else %}
+        <a class="button is-primary" href="{% url 'orders:checkout' %}">Pedir</a>
+      {% endif %}
     </div>
   {% else %}
     <p>Seu carrinho está vazio.</p>
@@ -41,4 +57,26 @@
       <a class="button is-light" href="{% url 'menu:list' %}">Ver cardápio</a>
     </div>
   {% endif %}
+
+  <style>
+    /* Pill */
+    .pedido-dia {
+      display: inline-block;
+      font-size: .95rem;
+      margin: .25rem 0 .75rem;
+      padding: .35rem .6rem;
+      border-radius: 999px;
+      background: rgba(0,0,0,.06);          /* light theme */
+      color: inherit;                        /* use normal text color */
+    }
+    :root[data-theme="dark"] .pedido-dia {
+      background: rgba(255,255,255,.10);     /* a tad brighter for contrast in dark */
+    }
+    /* Ensure the date is not faded */
+    .pedido-dia strong {
+      color: inherit !important;             /* same color as the rest of the pill */
+      font-weight: 700;
+      opacity: 1 !important;
+    }
+  </style>
 {% endblock %}
