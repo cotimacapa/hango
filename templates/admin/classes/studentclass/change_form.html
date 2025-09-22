@@ -1,0 +1,16 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+  {{ block.super }}
+  {% if original.pk %}
+    {% if not original.next_year_id %}
+      <li>
+        <a class="historylink"
+           href="{% url 'admin:classes_studentclass_create_next_year' original.pk %}">
+          Criar sequência (próximo ano)
+        </a>
+      </li>
+    {% endif %}
+  {% endif %}
+{% endblock %}
