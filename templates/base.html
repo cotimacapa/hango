@@ -4,6 +4,10 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mynerve&display=swap" rel="stylesheet">
+
     <title>{% block title %}Hango{% endblock %}</title>
 
     <script>
@@ -27,10 +31,14 @@
     <nav class="navbar is-primary" role="navigation" aria-label="Navegação principal">
       <div class="navbar-brand">
         <!-- Logo: ALWAYS go to "/" -->
-        <a class="navbar-item" href="/">
+        <!-- <a class="navbar-item brand-wordmark" href="/">
           🍽️ Hango
+        </a> -->
+        <a class="navbar-item">
+          <span class="brand-wordmark">
+          🍽️ Hango
+          </span>
         </a>
-
         <a class="navbar-item theme-toggle is-hidden-desktop" role="button" aria-label="Tema" title="Tema">
           <span class="js-theme-icon" aria-hidden="true"></span>
         </a>

@@ -548,3 +548,23 @@ html[data-theme="dark"] .button.is-light:hover {
   opacity: 1 !important;
 }
 
+/* Wordmark only — keep the rest of the UI untouched */
+.brand-wordmark {
+  font-family: "Mynerve", cursive;
+  font-size: 1.40rem;            /* handwriting needs a smidge more size */
+  letter-spacing: -0.01em;       /* tighten slightly for nav */
+  line-height: 2;
+  display: inline-block;
+  /* margin-left: .4rem;            space after the icon */
+  text-transform: none;          /* Mynerve looks worse in ALL CAPS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fallback if you can't wrap the text: targets the first brand item text */
+.navbar-brand .navbar-item:first-child {
+  font-family: "Mynerve", cursive;
+  font-size: 1.30rem;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
