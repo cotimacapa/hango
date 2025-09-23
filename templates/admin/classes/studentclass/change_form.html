@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n %}
+{% load static %}
 
 {% block object-tools-items %}
   {# keep the default tools #}
@@ -7,14 +7,9 @@
 
   {# show banner if there is a successor #}
   {% if has_next_year %}
-    <!-- <li>
-      <div class="messagelist">
-        <a class="button">{% trans "Esta turma já possui uma sucessora." %}</a>
-      </div>
-    </li> -->
     <li>
       <a
-        class="button"
+        class="button is-light"
         href=""
         aria-disabled="true"
         disabled
