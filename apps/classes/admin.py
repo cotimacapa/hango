@@ -1,3 +1,6 @@
+# apps/classes/admin.py
+import re
+
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
@@ -120,7 +123,72 @@ class StudentClassAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">{}</a>', url, nxt)
     next_year_display.short_description = "Próximo ano"
 
-    # Endpoint usado pelo botão no change_form
+    # ---------- helpers ----------
+
+    @staticmethod
+    def _guess_successor_name(current_name: str) -> str:
+        """
+        Turn 'Química 1° Ano' -> 'Química 2º Ano', 'Química 2º Ano' -> 'Química 3º Ano'.
+        Accepts both 'º' and '°' (and a few loose variants), case-insensitive 'Ano'.
+        Falls back to incrementing a trailing number, else uses a safe suffix.
+        """
+        s = current_name.strip()
+
+        # Match "... <number> [º|°|o|ª]? Ano"
+        m = re.search(r"^(.*?)(\d+)\s*[º°oª]?\s*(?:ano)$", s, flags=re.IGNORECASE)
+        if m:
+            prefix = m.group(1).strip()
+            n = int(m.group(2)) + 1
+            return f"{prefix} {n}º Ano".strip()
+
+        # Fallback: increment a trailing number if present
+        m2 = re.search(r"(.*?)(\d+)\s*$", s)
+        if m2:
+            prefix = m2.group(1).strip()
+            n = int(m2.group(2)) + 1
+            return f"{prefix} {n}".strip()
+
+        # Last resort
+        return f"{s} — sequência"
+
+    def _find_or_create_successor(self, cls: StudentClass) -> tuple[StudentClass, bool]:
+        """
+        Se existir uma turma com o nome sucessor já cadastrado, apenas vincula.
+        Caso contrário, cria uma nova sucessora.
+        Returns: (obj, created_bool)
+        """
+        target_name = self._guess_successor_name(cls.name)
+        expected_year = (cls.year + 1) if cls.year is not None else None
+
+        with transaction.atomic():
+            existing = StudentClass.objects.filter(name=target_name).first()
+            if existing:
+                # Se já tem prev_year e não é este, não podemos “roubar” o vínculo.
+                if existing.prev_year_id and existing.prev_year_id != cls.id:
+                    raise ValidationError(
+                        f"Já existe a turma '{existing}' vinculada a outra anterior. "
+                        "Ajuste manualmente se necessário."
+                    )
+                # Completa dados ausentes e vincula
+                if existing.year is None and expected_year is not None:
+                    existing.year = expected_year
+                if not existing.days_mask:
+                    existing.days_mask = cls.days_mask
+                existing.prev_year = cls
+                existing.save()
+                return existing, False
+
+            successor = StudentClass.objects.create(
+                name=target_name,
+                year=expected_year,
+                is_active=True,
+                days_mask=cls.days_mask,
+                prev_year=cls,  # define o vínculo; cria 'next_year' reverso
+            )
+            return successor, True
+
+    # ---------- urls / views ----------
+
     def get_urls(self):
         urls = super().get_urls()
         my = [
@@ -135,7 +203,7 @@ class StudentClassAdmin(admin.ModelAdmin):
     def create_next_year_view(self, request, pk):
         cls = get_object_or_404(StudentClass, pk=pk)
 
-        # Já tem sucessora?
+        # Já tem sucessora? Apenas informa e volta.
         try:
             _ = cls.next_year
             messages.info(request, "Esta turma já possui uma sucessora.")
@@ -143,23 +211,28 @@ class StudentClassAdmin(admin.ModelAdmin):
         except ObjectDoesNotExist:
             pass
 
-        with transaction.atomic():
-            successor = StudentClass.objects.create(
-                name=cls.name,
-                year=(cls.year + 1) if cls.year is not None else None,
-                is_active=True,
-                days_mask=cls.days_mask,
-                prev_year=cls,  # define o vínculo; cria 'next_year' reverso
+        try:
+            successor, created = self._find_or_create_successor(cls)
+        except ValidationError as e:
+            messages.error(request, "; ".join(e.messages))
+            return redirect(reverse("admin:classes_studentclass_change", args=[cls.pk]))
+
+        if created:
+            messages.success(
+                request, f"Sequência criada: {successor} (vinculada como 'próximo ano')."
+            )
+        else:
+            messages.success(
+                request, f"Turma existente vinculada como 'próximo ano': {successor}."
             )
 
-        messages.success(
-            request, f"Sequência criada: {successor} (vinculada como 'próximo ano')."
-        )
         return redirect(reverse("admin:classes_studentclass_change", args=[cls.pk]))
+
+    # ---------- bulk action ----------
 
     @admin.action(description="Criar turma sucessora (próximo ano)")
     def criar_sucessora(self, request, queryset):
-        created, skipped = 0, 0
+        created, linked, skipped = 0, 0, 0
         for obj in queryset:
             # já tem sucessora?
             try:
@@ -169,17 +242,20 @@ class StudentClassAdmin(admin.ModelAdmin):
             except ObjectDoesNotExist:
                 pass
 
-            with transaction.atomic():
-                StudentClass.objects.create(
-                    name=obj.name,
-                    year=(obj.year + 1) if obj.year is not None else None,
-                    is_active=True,
-                    days_mask=obj.days_mask,
-                    prev_year=obj,
-                )
+            try:
+                successor, was_created = self._find_or_create_successor(obj)
+            except ValidationError:
+                skipped += 1
+                continue
+
+            if was_created:
                 created += 1
+            else:
+                linked += 1
 
         if created:
             messages.success(request, f"Criadas {created} turma(s) sucessora(s).")
+        if linked:
+            messages.info(request, f"Vinculadas {linked} turma(s) sucessora(s) já existentes.")
         if skipped:
-            messages.info(request, f"{skipped} turma(s) já possuíam sucessora e foram ignoradas.")
+            messages.info(request, f"{skipped} turma(s) já possuíam sucessora ou foram ignoradas.")
