@@ -2,15 +2,44 @@
 {% load i18n %}
 
 {% block object-tools-items %}
+  {# keep the default tools #}
   {{ block.super }}
-  {% if original.pk %}
-    {% if not original.next_year_id %}
-      <li>
-        <a class="historylink"
-           href="{% url 'admin:classes_studentclass_create_next_year' original.pk %}">
-          Criar sequência (próximo ano)
-        </a>
-      </li>
-    {% endif %}
+
+  {# show banner if there is a successor #}
+  {% if has_next_year %}
+    <!-- <li>
+      <div class="messagelist">
+        <a class="button">{% trans "Esta turma já possui uma sucessora." %}</a>
+      </div>
+    </li> -->
+    <li>
+      <a
+        class="button"
+        href=""
+        aria-disabled="true"
+        disabled
+        tabindex="-1"
+        role="button"
+        style="pointer-events:none; cursor:default"
+      >
+        Esta turma já possui uma sucessora.
+      </a>
+    </li>
   {% endif %}
+
+  {% if can_migrate_members %}
+    <li>
+      <a class="button" href="">Migrar alunos (ano anterior)</a>
+    </li>
+  {% endif %}
+
+  {# show the “create next” button only if there is NO successor #}
+  {% if not has_next_year and original.pk %}
+    <li>
+      <a class="button" href="{% url 'admin:classes_studentclass_create_next_year' original.pk %}">
+        Criar sequência (próximo ano)
+      </a>
+    </li>
+  {% endif %}
+  
 {% endblock %}
