@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}Pedidos — Hango{% endblock %}
+
+{% block content %}
+  <div class="block">
+    <h1 class="title is-4">Pedidos ({{ day|date:"d/m/Y" }})</h1>
+    <p class="subtitle is-6">Lista de supervisão. Para marcar retirada via leitor, use <strong>Leitura de código</strong>.</p>
+  </div>
+
+  <div class="field is-grouped mb-4" style="gap:.75rem; flex-wrap:wrap;">
+    <!-- <p class="control">
+      <a class="button is-link" href="{% url 'orders:scan' %}">🔎 Leitura de código</a>
+    </p> -->
+
+    {# Date picker + Go #}
+    <form method="get" class="field has-addons">
+      <div class="control">
+        <input class="input" type="date" name="day" value="{{ day|date:'Y-m-d' }}">
+      </div>
+      <div class="control">
+        <button class="button is-info" type="submit">Ir</button>
+      </div>
+    </form>
+
+    {# Export CSV for the same day #}
+    <form method="get" action="{% url 'orders:export_csv' %}" class="field has-addons">
+      <input type="hidden" name="day" value="{{ day|date:'Y-m-d' }}">
+      <div class="control">
+        <button class="button" type="submit">⬇ Exportar CSV</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-container">
+    <table class="table is-fullwidth is-striped is-hoverable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Aluno</th>
+          <th>Token</th>
+          <th>Status</th>
+          <th>Entrega</th>
+          <th>Criado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td>{{ o.id }}</td>
+            <td>{{ o.user.get_full_name|default:o.user }}</td>
+            <td><code>{{ o.pickup_token }}</code></td>
+            <td>{{ o.status }}</td>
+            <td>{{ o.delivery_status }}</td>
+            <td class="has-text-grey">{{ o.created_at|localtime|date:"H:i" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="has-text-grey">Nenhum pedido para a data selecionada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

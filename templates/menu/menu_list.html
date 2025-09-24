@@ -4,7 +4,6 @@
 
 {% block content %}
   <h1 class="title">Cardápio de Hoje</h1>
-  <p class="subtitle">Refeições são gratuitas para alunos.</p>
 
   {# Badge with the next pickup date (if provided in context) #}
   {% if service_day %}
@@ -31,7 +30,6 @@
                 {% if item.category %}
                   <p class="subtitle is-6">{{ item.category }}</p>
                 {% endif %}
-                <span class="tag is-success">GRÁTIS</span>
               </div>
               <div class="card-content">
                 <div class="buttons">
@@ -40,9 +38,12 @@
                       Adicionar ao carrinho
                     </button>
                   {% else %}
-                    <a href="{% url 'orders:add' item.id %}" class="button is-small is-primary">
-                      Adicionar ao carrinho
-                    </a>
+                    <form method="post" action="{% url 'orders:add' item.id %}" style="display:inline">
+                      {% csrf_token %}
+                      <button type="submit" class="button is-small is-primary">
+                        Adicionar ao carrinho
+                      </button>
+                    </form>
                   {% endif %}
                   <a href="{% url 'orders:cart' %}" class="button is-small is-light">
                     Ver carrinho

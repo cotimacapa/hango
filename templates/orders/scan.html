@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Leitura de código — Hango{% endblock %}
+
+{% block content %}
+  <h1 class="title is-4">Leitura de código</h1>
+  <p class="subtitle is-6">Aponte o leitor para o código do aluno. O campo abaixo mantém foco automático.</p>
+
+  <form method="post" class="field is-grouped">
+    {% csrf_token %}
+    <div class="control is-expanded">
+      {# IMPORTANT: no pattern here; scanners may send CR/LF; server validates EAN-13 #}
+      <input class="input is-medium" type="text" name="token"
+             inputmode="numeric" maxlength="32" autofocus
+             placeholder="Digite/escaneie o código" autocomplete="off">
+    </div>
+    <div class="control">
+      <button class="button is-medium is-link" type="submit">Confirmar</button>
+    </div>
+  </form>
+
+  {% if result %}
+    {% if result == "ok" %}
+      <article class="message is-success">
+        <div class="message-body">
+          ✅ Entregue para <strong>{{ order.user.get_full_name|default:order.user }}</strong>.
+          <br>Pedido <strong>#{{ order.id }}</strong> — Token <code>{{ order.pickup_token }}</code> — Dia {{ order.service_day|date:"d/m/Y" }}.
+        </div>
+      </article>
+    {% elif result == "already" %}
+      <article class="message is-warning">
+        <div class="message-body">
+          ℹ️ Este pedido já foi entregue. {{ message }}
+          <br>Pedido <strong>#{{ order.id }}</strong> — Token <code>{{ order.pickup_token }}</code>.
+        </div>
+      </article>
+    {% elif result == "wrongday" %}
+      <article class="message is-warning">
+        <div class="message-body">
+          ⚠️ Código válido, mas não é de hoje. {{ message }}
+          <br>Pedido <strong>#{{ order.id }}</strong> — Token <code>{{ order.pickup_token }}</code>.
+        </div>
+      </article>
+    {% elif result == "notfound" %}
+      <article class="message is-danger">
+        <div class="message-body">❌ Token não encontrado.</div>
+      </article>
+    {% else %}
+      <article class="message is-danger">
+        <div class="message-body">❌ {{ error }}</div>
+      </article>
+    {% endif %}
+  {% endif %}
+
+  <!-- <div class="buttons mt-2">
+    <a class="button" href="{% url 'orders:list' %}">⬅ Pedidos</a>
+    <a class="button" href="{% url 'orders:kitchen' %}">🍽 Cozinha</a>
+  </div> -->
+{% endblock %}

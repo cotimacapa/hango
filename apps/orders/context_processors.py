@@ -15,3 +15,26 @@ def greeting(request):
     else:
         text = "Boa noite"
     return {"greeting_pt": text}
+
+def cart_count(request):
+    """
+    Total quantity of items in the session cart.
+
+    Accepts both legacy shapes:
+      - {"42": 3}
+      - {"42": {"qty": 3, ...}}
+    """
+    cart = request.session.get("cart") or {}
+    total = 0
+    for v in cart.values():
+        if isinstance(v, dict):
+            try:
+                total += int(v.get("qty", 0))
+            except Exception:
+                continue
+        else:
+            try:
+                total += int(v)
+            except Exception:
+                continue
+    return {"cart_count": total}

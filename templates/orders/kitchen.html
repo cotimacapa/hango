@@ -8,6 +8,12 @@
 
 <h1 class="title">Cozinha</h1>
 <p class="subtitle">Pedidos pendentes de hoje. Atualiza automaticamente a cada 10 segundos.</p>
+    
+  <div class="field is-grouped mb-4" style="gap:.75rem; flex-wrap:wrap;">
+    <p class="control">
+      <a class="button is-link" href="{% url 'orders:scan' %}">🔎 Leitura de código</a>
+    </p>
+  </div>
 
 <div class="box">
   {% if orders %}

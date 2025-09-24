@@ -9,13 +9,16 @@ urlpatterns = [
     path('cart/remove/<int:pk>/', views.remove, name='remove'),
     path('checkout/', views.checkout, name='checkout'),
     path('success/<int:order_id>/', views.success, name='success'),
+
     path('kitchen/', views.kitchen_board, name='kitchen'),
     path('status/<int:order_id>/<str:new_status>/', views.update_status, name='update_status'),
     path('deliver/<int:order_id>/<str:state>/', views.set_delivery_status, name='deliver'),
 
-    # Staff daily orders list
-    path('list/', views.orders_list, name='list'),
+    path('scan/', views.scan, name='scan'),
 
-    # Student history (URL name matches template usage: 'orders:history')
+    # Pedidos list + CSV export
+    path('list/', views.orders_list, name='list'),
+    path('export/', views.export_orders_csv, name='export_csv'),
+
     path('history/', views.order_history, name='history'),
 ]
