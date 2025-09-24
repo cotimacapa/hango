@@ -1,9 +1,30 @@
+# apps/orders/models.py
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+import secrets
+
 # NEW: threshold for auto-block
 AUTO_BLOCK_THRESHOLD = 3  # 3 faltas consecutivas
+
+
+def _ean13_check_digit(d12: str) -> str:
+    """
+    Calcula o dígito verificador EAN-13 para 12 dígitos.
+    Pesos: posições ímpares=1, pares=3 (indexação 1..12 da esquerda p/ direita).
+    """
+    s = 0
+    for i, ch in enumerate(d12):
+        n = int(ch)
+        s += (3 * n) if ((i + 1) % 2 == 0) else n
+    return str((10 - (s % 10)) % 10)
+
+
+def _generate_ean13() -> str:
+    """Gera 12 dígitos aleatórios e anexa o DV EAN-13 (total = 13 dígitos)."""
+    d12 = "".join(str(secrets.randbelow(10)) for _ in range(12))
+    return d12 + _ean13_check_digit(d12)
 
 
 class Order(models.Model):
@@ -60,6 +81,18 @@ class Order(models.Model):
         related_name="delivered_orders",
     )
 
+    # NEW: token opaco (somente dígitos), pronto para EAN-13 (13 chars)
+    pickup_token = models.CharField(
+        "Token de retirada",
+        max_length=13,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        editable=False,
+        help_text="Token opaco para retirada no balcão (EAN-13, sem PII).",
+    )
+
     class Meta:
         verbose_name = "Pedido"
         verbose_name_plural = "Pedidos"
@@ -80,7 +113,32 @@ class Order(models.Model):
         return f"Pedido {self.pk} de {self.user}"
 
     # ──────────────────────────────────────────────────────────────────────
-    # NEW: Helpers para integrar com a lógica de faltas / bloqueio
+    # NEW: token lifecycle
+    # ──────────────────────────────────────────────────────────────────────
+    def ensure_pickup_token(self, *, force: bool = False) -> str:
+        """
+        Garante que o pedido possua um token EAN-13 exclusivo.
+        Usa 12 dígitos aleatórios + DV; re-tenta em caso de colisão.
+        """
+        if self.pickup_token and not force:
+            return self.pickup_token
+
+        for _ in range(8):
+            candidate = _generate_ean13()
+            if not type(self).objects.filter(pickup_token=candidate).exists():
+                self.pickup_token = candidate
+                return candidate
+        # Em casos extremamente improváveis
+        raise RuntimeError("Falha ao alocar pickup_token após várias tentativas")
+
+    def save(self, *args, **kwargs):
+        # Atribui token apenas na criação (mantém tokens estáveis)
+        if self.pk is None and not self.pickup_token:
+            self.ensure_pickup_token()
+        super().save(*args, **kwargs)
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Helpers para integrar com a lógica de faltas / bloqueio
     # ──────────────────────────────────────────────────────────────────────
     def mark_picked_up(self, by=None, *, save_user=True):
         """
@@ -125,32 +183,13 @@ class Order(models.Model):
                 u.save(update_fields=["no_show_streak", "last_no_show_at"])
         return self
 
-    # NEW: cancelar pedido liberando o "slot" do dia
-    def cancel(self, *, by=None, reason: str = ""):
-        """
-        Cancela o pedido e libera o dia para nova solicitação.
-        Regra: ao cancelar, definimos service_day=None para não colidir com a
-        restrição única (múltiplos NULLs são permitidos).
-        """
-        if self.status == "canceled":
-            return self
-        self.status = "canceled"
-        # Mantém delivery_status coerente com cancelamento
-        if self.delivery_status != "undelivered":
-            self.delivery_status = "undelivered"
-        # Libera o dia para permitir novo pedido do estudante (antes da data)
-        self.service_day = None
-        self.save(update_fields=["status", "delivery_status", "service_day"])
-        return self
-        
-
 
 class OrderItem(models.Model):
     order = models.ForeignKey(
         Order,
         verbose_name="Pedido",
-        on_delete=models.CASCADE,
         related_name="lines",
+        on_delete=models.CASCADE,
     )
     item = models.ForeignKey(
         "menu.Item",

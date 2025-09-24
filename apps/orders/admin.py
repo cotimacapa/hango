@@ -40,6 +40,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "user",
+        "pickup_token",    # NEW: mostra o token
         "user_blocked",
         "user_no_show_streak",
         "service_day",
@@ -55,12 +56,12 @@ class OrderAdmin(admin.ModelAdmin):
         ("service_day", admin.DateFieldListFilter),
         ("created_at", admin.DateFieldListFilter),
     )
-    search_fields = ("user__cpf", "user__first_name", "user__last_name")
-    readonly_fields = ("created_at",)
+    search_fields = ("pickup_token", "user__cpf", "user__first_name", "user__last_name")  # NEW
+    readonly_fields = ("created_at", "pickup_token")  # NEW
     fields = (
         ("user", "service_day"),
         ("status", "delivery_status"),
-        ("created_at",),
+        ("created_at", "pickup_token"),  # NEW: read-only no form
         ("delivered_at", "delivered_by"),
     )
     save_on_top = True
@@ -159,7 +160,7 @@ class OrdersExport(Order):
         verbose_name_plural = "Listagem"
 
 
-def _weekday_bit(d):  # Mon=0..Sun=6 -> 1<<weekday
+def _weekday_bit(d):  # Mon=0.Sun=6 -> 1<<weekday
     return 1 << d.weekday()
 
 
