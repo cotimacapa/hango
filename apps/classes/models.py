@@ -75,7 +75,7 @@ class StudentClass(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Sequência"
+        verbose_name = "Turma"
         verbose_name_plural = "Turmas"
         ordering = ("name",)
         indexes = [
