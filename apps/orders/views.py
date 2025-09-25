@@ -200,7 +200,7 @@ def add(request: HttpRequest, pk: int) -> HttpResponse:
     if existing_ids:
         for it in Item.objects.filter(pk__in=existing_ids).select_related("category"):
             if _category_key(it) == cat_key:
-                messages.error(
+                messages.warning(
                     request,
                     f"Você pode escolher apenas 1 item da categoria {_category_name(item)} por dia."
                 )
@@ -262,7 +262,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
     # Disallow any line with qty > 1
     for l in lines:
         if int(l.qty or 0) > 1:
-            messages.error(request, "Você pode escolher apenas 1 unidade de cada item.")
+            messages.warning(request, "Você pode escolher apenas 1 unidade de cada item.")
             return redirect("orders:cart")
 
     # Aggregate by category; each category can appear at most once (total qty <= 1)
@@ -284,7 +284,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
     # Any category with total > 1 is a violation
     for k, total in counts.items():
         if total > 1:
-            messages.error(request, f"Você pode escolher apenas 1 item da categoria {cat_names.get(k, 'categoria')} por dia.")
+            messages.warning(request, f"Você pode escolher apenas 1 item da categoria {cat_names.get(k, 'categoria')} por dia.")
             return redirect("orders:cart")
 
     # Compute the service day (amanhã elegível) and enforce 1 por dia
@@ -292,7 +292,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
     try:
         ensure_student_daily_limit(request.user, service_day, OrderModel=Order)
     except ValidationError as e:
-        messages.error(request, e.messages[0] if getattr(e, "messages", None) else "Você já possui um pedido para este dia.")
+        messages.warning(request, e.messages[0] if getattr(e, "messages", None) else "Você já possui um pedido para este dia.")
         return redirect("orders:cart")
 
     with transaction.atomic():
@@ -308,7 +308,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
         except IntegrityError:
             # Race condition against the unique constraint (user, service_day)
-            messages.error(request, "Você já possui um pedido para este dia.")
+            messages.warning(request, "Você já possui um pedido para este dia.")
             return redirect("orders:cart")
 
     _clear_session_cart(request)

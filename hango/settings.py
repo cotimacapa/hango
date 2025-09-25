@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 import dj_database_url
 
+from django.contrib.messages import constants as messages
+
 # ── Paths & env ────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -122,3 +124,12 @@ DEFAULT_LUNCH_DAYS_MASK = 0b11111
 
 # ── Django defaults ───────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ── Message tags overrides ───────────────────────────────────────────────────────────
+MESSAGE_TAGS = {
+    messages.DEBUG: 'dark',
+    messages.INFO: 'info',
+    messages.SUCCESS: 'success',
+    messages.WARNING: 'warning',  # Bulma has is-warning (yellow)
+    messages.ERROR: 'danger',     # Bulma uses is-danger (red)
+}
