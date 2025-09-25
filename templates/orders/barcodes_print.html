@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Códigos de retirada — {{ day|date:"d/m/Y" }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="level">
+      <div class="level-left">
+        <h1 class="title is-4">Códigos de retirada — {{ day|date:"d/m/Y" }}</h1>
+      </div>
+      <div class="level-right is-hidden-print">
+        <!-- <a class="button" href="?day={{ day|date:'Y-m-d' }}">Hoje</a> -->
+        <button class="button is-primary" onclick="window.print()">Imprimir</button>
+      </div>
+    </div>
+
+    <style>
+      @media print { .is-hidden-print { display: none !important; } }
+      .barcode-card {
+        page-break-inside: avoid; break-inside: avoid;
+        border: 1px solid var(--bulma-border, #dbdbdb);
+        border-radius: 8px; padding: 12px; margin-bottom: 12px;
+        background: #fff; color: #111;   /* force black text on white card */
+      }
+      .barcode-grid {
+        display: grid; grid-template-columns: 1.2fr 1fr;
+        gap: 8px 16px; align-items: center;
+      }
+      /* Make the barcode responsive and centered */
+      .barcode-svg-wrap { display: flex; justify-content: center; }
+      .barcode-card svg.ean13 { width: 100% !important; height: auto; max-width: 360px; }
+
+      /* Mobile: stack content so the svg doesn't overflow */
+      @media (max-width: 640px) {
+        .barcode-grid { grid-template-columns: 1fr; }
+        .barcode-card { padding: 14px; }
+        .barcode-card svg.ean13 { max-width: 320px; }
+      }
+
+      .barcode-card h2 { margin-bottom: .25rem; }
+      .barcode-label { color: #363636; }
+      @media (prefers-color-scheme: dark) { .barcode-label { color: #111; } }
+      .barcode-card code { font-size: .95rem; }
+    </style>
+
+    {% if not orders %}
+      <p class="has-text-grey">Nenhum pedido para a data selecionada.</p>
+    {% endif %}
+
+    {% for o in orders %}
+      <div class="barcode-card">
+        <div class="barcode-grid">
+          <div>
+            <h2 class="is-size-5 has-text-weight-semibold">{{ o.user.get_full_name|default:o.user }}</h2>
+            <p class="is-size-7 has-text-grey">Turma: {{ o.user_turma|default:"—" }}</p>
+            <p class="is-size-7 has-text-grey">Pedido #{{ o.id }} • Criado {{ o.created_at|date:"d/m/Y H:i" }}</p>
+            <p><strong class="barcode-label">Código de retirada:</strong> <code>{{ o.pickup_token }}</code></p>
+          </div>
+          <div class="barcode-svg-wrap">
+            <svg class="ean13" data-token="{{ o.pickup_token }}"></svg>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<script src="{% static 'hango/js/ean13.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  if (typeof window.renderAllEAN13 === 'function') { try { window.renderAllEAN13(); } catch(e){} }
+});
+</script>
+{% endblock %}

@@ -4,6 +4,7 @@ from . import views
 app_name = "orders"
 
 urlpatterns = [
+    path('barcodes/print/', views.barcodes_print, name='barcodes_print'),
     path('cart/', views.view_cart, name='cart'),
     path('cart/add/<int:pk>/', views.add, name='add'),
     path('cart/remove/<int:pk>/', views.remove, name='remove'),

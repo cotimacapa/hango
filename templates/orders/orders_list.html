@@ -10,30 +10,78 @@
   </div>
 
   <div class="field is-grouped mb-4" style="gap:.75rem; flex-wrap:wrap;">
-    <!-- <p class="control">
-      <a class="button is-link" href="{% url 'orders:scan' %}">🔎 Leitura de código</a>
-    </p> -->
+    <!-- Date picker + Go -->
+    <div class="control">
+      <form method="get" action="{% url 'orders:list' %}" class="field has-addons">
+        <div class="control">
+          <input class="input" type="date" name="day" value="{{ day|date:'Y-m-d' }}">
+        </div>
+        <div class="control">
+          <button class="button is-link" type="submit">Ir</button>
+        </div>
+      </form>
+    </div>
 
-    {# Date picker + Go #}
-    <form method="get" class="field has-addons">
-      <div class="control">
-        <input class="input" type="date" name="day" value="{{ day|date:'Y-m-d' }}">
-      </div>
-      <div class="control">
-        <button class="button is-info" type="submit">Ir</button>
-      </div>
-    </form>
+    <!-- Print sheet -->
+    <div class="control">
+      <a class="button" href="{% url 'orders:barcodes_print' %}?day={{ day|date:'Y-m-d' }}">🖨 Imprimir códigos</a>
+    </div>
 
-    {# Export CSV for the same day #}
-    <form method="get" action="{% url 'orders:export_csv' %}" class="field has-addons">
-      <input type="hidden" name="day" value="{{ day|date:'Y-m-d' }}">
-      <div class="control">
+    <!-- Export CSV -->
+    <div class="control">
+      <form method="get" action="{% url 'orders:export_csv' %}">
+        <input type="hidden" name="day" value="{{ day|date:'Y-m-d' }}">
         <button class="button" type="submit">⬇ Exportar CSV</button>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
 
-  <div class="table-container">
+  <!-- ======================= MOBILE: STACKED ACCORDION ======================= -->
+  <div class="is-hidden-tablet" data-role="orders-mobile-list">
+    {% for o in orders %}
+      <details class="box mb-3">
+        <summary class="is-clickable" style="list-style:none;">
+          <div class="is-flex is-justify-content-space-between is-align-items-center">
+            <div class="mr-2">
+              <strong>#{{ o.id }}</strong>
+              <span class="ml-2">{{ o.user.get_full_name|default:o.user }}</span>
+            </div>
+            <div>
+              {% if o.status == "canceled" %}
+                <span class="tag is-dark">Cancelado</span>
+              {% elif o.status == "picked_up" %}
+                <span class="tag is-success">Finalizado</span>
+              {% elif o.status == "pending" %}
+                <span class="tag is-warning">Pendente</span>
+              {% else %}
+                <span class="tag">{{ o.status }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </summary>
+
+        <div class="mt-3 content">
+          <p><strong>Aluno:</strong> {{ o.user.get_full_name|default:o.user }}</p>
+          <p><strong>Token:</strong> <code>{{ o.pickup_token }}</code></p>
+          <p><strong>Entrega:</strong>
+            {% if o.delivered_at %}
+              Entregue <span class="is-size-7 has-text-grey">({{ o.delivered_at|localtime|date:"d/m/Y H:i" }})</span>
+            {% elif o.delivery_status == "undelivered" %}
+              Não entregue
+            {% else %}
+              —
+            {% endif %}
+          </p>
+          <p><strong>Criado:</strong> {{ o.created_at|localtime|date:"d/m/Y H:i" }}</p>
+        </div>
+      </details>
+    {% empty %}
+      <p class="has-text-grey">Nenhum pedido para a data selecionada.</p>
+    {% endfor %}
+  </div>
+
+  <!-- ======================= DESKTOP: TABLE ======================= -->
+  <div class="table-container is-hidden-mobile">
     <table class="table is-fullwidth is-striped is-hoverable">
       <thead>
         <tr>
@@ -51,9 +99,28 @@
             <td>{{ o.id }}</td>
             <td>{{ o.user.get_full_name|default:o.user }}</td>
             <td><code>{{ o.pickup_token }}</code></td>
-            <td>{{ o.status }}</td>
-            <td>{{ o.delivery_status }}</td>
-            <td class="has-text-grey">{{ o.created_at|localtime|date:"H:i" }}</td>
+            <td>
+              {% if o.status == "canceled" %}
+                <span class="tag is-dark">Cancelado</span>
+              {% elif o.status == "picked_up" %}
+                <span class="tag is-success">Finalizado</span>
+              {% elif o.status == "pending" %}
+                <span class="tag is-warning">Pendente</span>
+              {% else %}
+                <span class="tag">{{ o.status }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if o.delivered_at %}
+                <span class="tag is-success is-light">Entregue</span>
+                <span class="is-size-7 has-text-grey"> {{ o.delivered_at|localtime|date:"d/m/Y H:i" }}</span>
+              {% elif o.delivery_status == "undelivered" %}
+                <span class="tag is-danger is-light">Não entregue</span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td class="has-text-grey">{{ o.created_at|localtime|date:"d/m/Y H:i" }}</td>
           </tr>
         {% empty %}
           <tr><td colspan="6" class="has-text-grey">Nenhum pedido para a data selecionada.</td></tr>
