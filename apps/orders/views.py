@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,7 +8,7 @@ from datetime import date as date_cls
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db import transaction, IntegrityError
-from django.http import HttpRequest, HttpResponse, HttpResponseForbidden  # UPDATED
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -109,6 +110,32 @@ def _cart_totals(lines: List[CartLine]) -> Tuple[int, float]:
 
 
 # ---------------------------------------------------------------------
+# Category helpers (for "one per category" rule)
+# ---------------------------------------------------------------------
+
+def _category_key(item: Item | None) -> str | None:
+    """Return a stable key for the item's category (slug preferred)."""
+    if not item or not getattr(item, "category_id", None):
+        return None
+    try:
+        slug = getattr(item.category, "slug", None)
+        return slug or f"cat:{item.category_id}"
+    except Exception:
+        return f"cat:{item.category_id}"
+
+
+def _category_name(item: Item | None) -> str:
+    """Human label for messages (“Almoço”, “Bebidas”, …)."""
+    try:
+        name = getattr(item.category, "name", None)
+        if not name and hasattr(item.category, "__str__"):
+            name = str(item.category)
+        return str(name) if name else "categoria"
+    except Exception:
+        return "categoria"
+
+
+# ---------------------------------------------------------------------
 # Cart & checkout views
 # ---------------------------------------------------------------------
 
@@ -130,17 +157,57 @@ def view_cart(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def add(request: HttpRequest, pk: int) -> HttpResponse:
-    """Store quantities as plain ints in the session cart (legacy-compatible)."""
+    """
+    Add one unit of an item; enforce one-per-item and one-per-category in the cart.
+    Quantities are always capped at 1.
+    """
     cart = _get_session_cart(request)
     key = str(pk)
 
-    current = cart.get(key, 0)
-    if isinstance(current, dict):
-        qty = int(current.get("qty", 0)) + 1
-    else:
-        qty = int(current) + 1 if current else 1
+    # Load the item + its category for validation
+    try:
+        item = Item.objects.select_related("category").get(pk=int(pk))
+    except Item.DoesNotExist:
+        messages.error(request, "Item não encontrado.")
+        return redirect("orders:cart")
 
-    cart[key] = qty
+    # Block items without a category (prevents bypassing category limits)
+    cat_key = _category_key(item)
+    if cat_key is None:
+        messages.error(request, "Este item precisa estar em uma categoria antes de ser pedido.")
+        return redirect("orders:cart")
+
+    # 1) Disallow >1 of the same item
+    current = cart.get(key, 0)
+    current_qty = int(current.get("qty", current) if isinstance(current, dict) else current or 0)
+    if current_qty >= 1:
+        messages.error(request, f"Você pode escolher apenas 1 unidade de {item.name}.")
+        return redirect("orders:cart")
+
+    # 2) Disallow a second item from the same category already in the cart
+    existing_ids: List[int] = []
+    for k, payload in (cart or {}).items():
+        try:
+            q = int(payload.get("qty", payload) if isinstance(payload, dict) else payload or 0)
+        except Exception:
+            q = 0
+        if q > 0:
+            try:
+                existing_ids.append(int(k))
+            except Exception:
+                pass
+
+    if existing_ids:
+        for it in Item.objects.filter(pk__in=existing_ids).select_related("category"):
+            if _category_key(it) == cat_key:
+                messages.error(
+                    request,
+                    f"Você pode escolher apenas 1 item da categoria {_category_name(item)} por dia."
+                )
+                return redirect("orders:cart")
+
+    # Passed validation → cap at 1
+    cart[key] = 1
     _save_session_cart(request, cart)
     messages.success(request, "Adicionado ao carrinho.")
     return redirect("orders:cart")
@@ -149,18 +216,12 @@ def add(request: HttpRequest, pk: int) -> HttpResponse:
 @login_required
 @require_http_methods(["POST"])
 def remove(request: HttpRequest, pk: int) -> HttpResponse:
-    """Decrement quantities and keep the session value as an int."""
+    """Remove an item (sets qty to 0)."""
     cart = _get_session_cart(request)
     key = str(pk)
 
     if key in cart:
-        current = cart[key]
-        qty = int(current.get("qty", 0)) if isinstance(current, dict) else int(current)
-        qty -= 1
-        if qty <= 0:
-            cart.pop(key, None)
-        else:
-            cart[key] = qty
+        cart.pop(key, None)
         _save_session_cart(request, cart)
         messages.info(request, "Removido do carrinho.")
 
@@ -195,6 +256,38 @@ def checkout(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Seu carrinho está vazio.")
         return redirect("orders:cart")
 
+    # === Per-item and per-category validation (server-side) ===
+    from collections import Counter
+
+    # Disallow any line with qty > 1
+    for l in lines:
+        if int(l.qty or 0) > 1:
+            messages.error(request, "Você pode escolher apenas 1 unidade de cada item.")
+            return redirect("orders:cart")
+
+    # Aggregate by category; each category can appear at most once (total qty <= 1)
+    counts = Counter()
+    cat_names: Dict[str, str] = {}
+
+    # Preload items to avoid N+1
+    id_map = {int(l.key): l for l in lines if str(l.key).isdigit()}
+    items = Item.objects.filter(pk__in=id_map.keys()).select_related("category")
+
+    for it in items:
+        k = _category_key(it)
+        if k is None:
+            messages.error(request, f"O item {it.name} não possui categoria configurada.")
+            return redirect("orders:cart")
+        cat_names[k] = _category_name(it)
+        counts[k] += int(id_map[int(it.pk)].qty or 0)
+
+    # Any category with total > 1 is a violation
+    for k, total in counts.items():
+        if total > 1:
+            messages.error(request, f"Você pode escolher apenas 1 item da categoria {cat_names.get(k, 'categoria')} por dia.")
+            return redirect("orders:cart")
+
+    # Compute the service day (amanhã elegível) and enforce 1 por dia
     service_day = next_eligible_service_day(request.user)
     try:
         ensure_student_daily_limit(request.user, service_day, OrderModel=Order)
@@ -205,13 +298,16 @@ def checkout(request: HttpRequest) -> HttpResponse:
     with transaction.atomic():
         try:
             order = Order.objects.create(user=request.user, service_day=service_day)
+
             for l in lines:
                 try:
                     item_obj = Item.objects.get(pk=int(l.key))
                 except (Item.DoesNotExist, ValueError):
                     item_obj = None
-                OrderItem.objects.create(order=order, item=item_obj, qty=l.qty)
+                OrderItem.objects.create(order=order, item=item_obj, qty=min(int(l.qty or 0), 1))
+
         except IntegrityError:
+            # Race condition against the unique constraint (user, service_day)
             messages.error(request, "Você já possui um pedido para este dia.")
             return redirect("orders:cart")
 
@@ -306,22 +402,16 @@ def _nome_usuario(u):
 
 def _turma_usuario(u):
     """
-    Resolve a human-readable class/turma for a user.
-
-    Strategy:
-      1) Check common user/profile fields.
-      2) Check StudentClass membership (apps.classes.StudentClass.members M2M),
-         preferring active and newest by year/created_at.
-      3) Fall back to first Django auth Group name.
+    Resolve class/turma for a user. Falls back to StudentClass membership.
     """
-    # 1) direct attributes on User
+    # direct attributes on User
     for attr in ("turma", "classroom", "class_name", "serie", "grade", "room",
                  "student_class", "current_class", "school_class", "classgroup", "studentclass"):
         val = getattr(u, attr, None)
         if val:
             return str(val)
 
-    # 1b) profile-style containers
+    # profile-like containers
     for container in (getattr(u, "profile", None), getattr(u, "student", None), getattr(u, "aluno", None)):
         if container is not None:
             for attr in ("turma", "classroom", "class_name", "serie", "grade",
@@ -335,12 +425,12 @@ def _turma_usuario(u):
                             pass
                     return str(val)
 
-    # 2) classes app: membership of StudentClass
+    # Classes app membership
     try:
-        from apps.classes.models import StudentClass  # avoids import cycle until runtime
+        from apps.classes.models import StudentClass  # lazy import
         qs = StudentClass.objects.filter(members=u)
         try:
-            qs = qs.filter(is_active=True)  # if field exists
+            qs = qs.filter(is_active=True)
         except Exception:
             pass
         classes = list(qs)
@@ -365,7 +455,7 @@ def _turma_usuario(u):
     except Exception:
         pass
 
-    # 3) Django auth groups fallback
+    # Django groups fallback
     try:
         groups = getattr(u, "groups", None)
         if groups is not None and hasattr(groups, "all"):
@@ -376,7 +466,6 @@ def _turma_usuario(u):
         pass
 
     return ""
-
 
 
 # ---------------------------------------------------------------------
@@ -402,7 +491,7 @@ def orders_list(request: HttpRequest) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------
-# Staff printable barcode sheet  ✦ NEW
+# Staff printable barcode sheet
 # ---------------------------------------------------------------------
 
 @login_required
@@ -420,7 +509,6 @@ def barcodes_print(request: HttpRequest) -> HttpResponse:
         .order_by("user__first_name", "user__last_name")
     )
 
-    # annotate resolved class/turma for the template
     for o in orders:
         try:
             o.user_turma = _turma_usuario(o.user)
@@ -431,7 +519,7 @@ def barcodes_print(request: HttpRequest) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------
-# Export CSV (moved from Admin)
+# Export CSV
 # ---------------------------------------------------------------------
 
 @login_required
@@ -443,7 +531,6 @@ def export_orders_csv(request: HttpRequest) -> HttpResponse:
     from collections import Counter
     import csv
 
-    # Accept both spellings if your model defines a constant; otherwise default.
     canceled_statuses = getattr(
         Order, "CANCELED_STATUSES",
         getattr(Order, "CANCELLED_STATUSES", ("canceled",))
@@ -451,11 +538,12 @@ def export_orders_csv(request: HttpRequest) -> HttpResponse:
 
     qs = (
         Order.objects.filter(service_day=day)
-        .exclude(**{"status__in": canceled_statuses})  # ← robust, no NameError
+        .exclude(**{"status__in": canceled_statuses})
         .select_related("user")
         .prefetch_related("lines__item")
     )
 
+    # Totals per item + per-order rows
     totals = Counter()
     order_rows = []
     for order in qs:
@@ -477,11 +565,14 @@ def export_orders_csv(request: HttpRequest) -> HttpResponse:
     resp["Content-Disposition"] = f'attachment; filename="hango_pedidos_{day:%Y-%m-%d}.csv"'
     writer = csv.writer(resp, lineterminator="\n")
 
+    # Header (human-friendly Portuguese)
     writer.writerow(["seção", "data", "nome", "turma", "item", "quantidade"])
 
+    # Totals first (sort by item A→Z)
     for item_name in sorted(totals):
         writer.writerow(["TOTAL", day.strftime("%d/%m/%Y"), "", "", item_name, totals[item_name]])
 
+    # Orders (one row per line item), sorted by turma then name then item
     for turma, nome, item_name, qty in sorted(order_rows, key=lambda r: (r[0], r[1], r[2])):
         writer.writerow(["PEDIDO", day.strftime("%d/%m/%Y"), nome, turma, item_name, qty])
 
@@ -511,7 +602,7 @@ def order_history(request: HttpRequest) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------
-# NEW: Scan page (barcode/token → mark delivered)
+# Scan page (barcode/token → mark delivered)
 # ---------------------------------------------------------------------
 
 def _ean13_check_digit(n12: str) -> str:
