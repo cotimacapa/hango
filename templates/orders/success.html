@@ -7,11 +7,18 @@
   <p class="subtitle">Obrigado. Seu pedido foi registrado com sucesso.</p>
 
   <div class="box">
-    <p><strong>ID do pedido:</strong> #{{ order_id }}</p>
+    <p><strong>ID do pedido:</strong> #{{ order.id }}</p>
+    <p class="mt-2"><strong>Código de retirada:</strong> <code>{{ order.pickup_token }}</code></p>
+    <div class="mt-3">
+      <svg class="ean13" data-token="{{ order.pickup_token }}"></svg>
+      <p class="help">Mostre este código no balcão para retirada.</p>
+    </div>
   </div>
 
   <div class="buttons mt-4">
     <a class="button is-light" href="{% url 'menu:list' %}">Voltar para o cardápio</a>
     <a class="button is-primary" href="{% url 'orders:cart' %}">Ir para o carrinho</a>
   </div>
+
+  <script src="{% static 'hango/js/ean13.js' %}"></script>
 {% endblock %}

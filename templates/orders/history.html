@@ -1,71 +1,183 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load static %}
 
-{% block title %}{% trans "Histórico" %} - Hango{% endblock %}
+{% block title %}Histórico - Hango{% endblock %}
 
 {% block content %}
 <section class="section">
   <div class="container">
-    <h1 class="title">{% trans "Seu histórico de pedidos" %}</h1>
+    <h1 class="title">Seu histórico de pedidos</h1>
+
+    <style>
+      /* Keep the label readable in both themes */
+      .barcode-label { color: inherit; }
+      @media (prefers-color-scheme: dark) {
+        .barcode-label { color: #ffffff; }
+      }
+      @media (prefers-color-scheme: light) {
+        .barcode-label { color: #363636; }
+      }
+    </style>
+
+    {% now "Y-m-d" as today_str %}
+    {% for o in orders %}
+      {% if not o.delivered_at and o.service_day|date:"Y-m-d" == today_str %}
+      <div class="notification is-link is-light is-hidden-tablet">
+        <p><strong class="barcode-label">Código de retirada:</strong> <code>{{ o.pickup_token }}</code></p>
+        <div class="mt-2"><svg class="ean13" data-token="{{ o.pickup_token }}"></svg></div>
+      </div>
+      {% endif %}
+    {% endfor %}
+
     {% if is_blocked %}
     <div class="notification is-danger">
-        Sua conta está <strong>bloqueada</strong> para realizar pedidos.
-        {% if no_show_streak %} Faltas seguidas: {{ no_show_streak }}.{% endif %}
+      Sua conta está <strong>bloqueada</strong> para realizar pedidos.
+      {% if no_show_streak %} Faltas seguidas: {{ no_show_streak }}.{% endif %}
     </div>
     {% else %}
     <div class="notification is-success is-light">
-        Status: <strong>desbloqueada</strong>. Você pode realizar pedidos.
+      Status: <strong>desbloqueada</strong>. Você pode realizar pedidos.
     </div>
     {% endif %}
 
-    {% if orders %}
-      <div class="table-container">
-        <table class="table is-fullwidth is-striped is-hoverable">
-          <thead>
-            <tr>
-              <th>{% trans "Data do pedido" %}</th>
-              <th>{% trans "Itens" %}</th>
-              <th>{% trans "Entrega" %}</th>
-              <th>{% trans "Status" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for o in orders %}
-              <tr>
-                <td>{{ o.created_at|date:"d/m/Y H:i" }}</td>
-                <td>
+    <!-- ======================= MOBILE ACCORDION ======================= -->
+    <div data-role="mobile-orders-accordion" class="is-hidden-tablet">
+      {% for o in orders %}
+        <details class="box mb-4">
+          <summary class="is-clickable" style="list-style:none;">
+            <div class="is-flex is-justify-content-space-between is-align-items-center">
+              <div>
+                <strong>{{ o.created_at|date:"d/m/Y H:i" }}</strong>
+                <div class="has-text-grey is-size-7">
                   {% if o.lines.exists %}
                     {% for ln in o.lines.all %}
                       {{ ln.qty }}× {{ ln.item.name }}{% if not forloop.last %}, {% endif %}
                     {% endfor %}
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td>
-                  {% if o.delivered_at %}
-                    {{ o.delivered_at|date:"d/m/Y H:i" }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-                <td>
-                  {% if o.delivery_status == "delivered" %}
-                    <span class="tag is-success">{% trans "Entregue" %}</span>
-                  {% elif o.delivery_status == "undelivered" %}
-                    <span class="tag is-danger">{% trans "Não entregue" %}</span>
-                  {% else %}
-                    <span class="tag is-warning">{% trans "Pendente" %}</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="has-text-grey">{% trans "Você ainda não tem pedidos. Quando fizer, eles aparecerão aqui." %}</p>
-    {% endif %}
+                  {% else %}—{% endif %}
+                </div>
+              </div>
+              <div>
+                {% if o.delivery_status == "delivered" %}
+                  <span class="tag is-success">Entregue</span>
+                {% elif o.delivery_status == "undelivered" %}
+                  <span class="tag is-danger">Não entregue</span>
+                {% else %}
+                  <span class="tag is-warning">Pendente</span>
+                {% endif %}
+              </div>
+            </div>
+          </summary>
+
+          <div class="mt-3 content">
+            <p><strong>Data do pedido:</strong> {{ o.created_at|date:"d/m/Y H:i" }}</p>
+            <p><strong>Entrega:</strong>
+              {% if o.delivered_at %}{{ o.delivered_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}
+            </p>
+            <p><strong>Status:</strong>
+              {% if o.delivery_status == "delivered" %}Entregue
+              {% elif o.delivery_status == "undelivered" %}Não entregue
+              {% else %}Pendente{% endif %}
+            </p>
+
+            {% if o.delivery_status == "pending" %}
+            <hr class="my-2">
+            <p><strong class="barcode-label">Código de retirada:</strong> <code>{{ o.pickup_token }}</code></p>
+            <svg class="ean13" data-token="{{ o.pickup_token }}"></svg>
+            {% endif %}
+          </div>
+        </details>
+      {% empty %}
+        <p class="has-text-grey">Você ainda não tem pedidos. Quando fizer, eles aparecerão aqui.</p>
+      {% endfor %}
+    </div>
+
+    <!-- ======================= DESKTOP TABLE ======================= -->
+    <div class="table-container is-hidden-mobile">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Data do pedido</th>
+            <th>Itens</th>
+            <th>Entrega</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in orders %}
+            <tr>
+              <td>{{ o.created_at|date:"d/m/Y H:i" }}</td>
+              <td>
+                {% if o.lines.exists %}
+                  {% for ln in o.lines.all %}
+                    {{ ln.qty }}× {{ ln.item.name }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if o.delivered_at %}
+                  {{ o.delivered_at|date:"d/m/Y H:i" }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if o.delivery_status == "delivered" %}
+                  <span class="tag is-success">Entregue</span>
+                {% elif o.delivery_status == "undelivered" %}
+                  <span class="tag is-danger">Não entregue</span>
+                {% else %}
+                  <span class="tag is-warning">Pendente</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if o.delivery_status == "pending" %}
+                  <button class="button is-small is-link is-light" data-toggle="code-{{ o.id }}">Mostrar código</button>
+                  <div id="code-{{ o.id }}" class="mt-2 is-hidden">
+                    <p><strong class="barcode-label">Código de retirada:</strong> <code>{{ o.pickup_token }}</code></p>
+                    <svg class="ean13" data-token="{{ o.pickup_token }}"></svg>
+                  </div>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
+
+  <script src="{% static 'hango/js/ean13.js' %}"></script>
+  <script>
+  // Desktop toggle for “Mostrar código”
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-toggle]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-toggle');
+        var box = document.getElementById(id);
+        if (!box) return;
+        var hidden = box.classList.contains('is-hidden');
+        if (hidden) {
+          box.classList.remove('is-hidden');
+          if (typeof window.renderAllEAN13 === 'function') { try { window.renderAllEAN13(); } catch(e){} }
+          btn.textContent = 'Ocultar código';
+        } else {
+          box.classList.add('is-hidden');
+          btn.textContent = 'Mostrar código';
+        }
+      });
+    });
+
+    // Re-render barcode when a mobile accordion opens
+    document.querySelectorAll('[data-role="mobile-orders-accordion"] details').forEach(function(details){
+      details.addEventListener('toggle', function(){
+        if (details.open && typeof window.renderAllEAN13 === 'function') { try { window.renderAllEAN13(); } catch(e){} }
+      });
+    });
+  });
+  </script>
 {% endblock %}
