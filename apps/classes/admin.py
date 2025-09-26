@@ -6,14 +6,18 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError, PermissionDenied
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils.html import format_html
 
 from .models import StudentClass
 from hango.admin.widgets import WeekdayMaskField  # bitmask widget for weekdays
+from django.shortcuts import get_object_or_404, redirect, render
 
 User = get_user_model()
 
@@ -73,7 +77,7 @@ class StudentClassAdminForm(forms.ModelForm):
             raise ValidationError("A turma anterior já possui outra sucessora.")
 
         return prev
-
+        
 
 # ------------------------ ModelAdmin ------------------------
 
@@ -100,13 +104,18 @@ class StudentClassAdmin(admin.ModelAdmin):
         allowed = {"name", "year"}
         return {k: v for k, v in request.GET.items() if k in allowed}
 
-    # Provide extra context for template buttons
+    # Provide extra context for template buttons (incl. new ROSTER button)
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         extra_context = extra_context or {}
         has_next_year = False
         next_year_url = None
         can_migrate_members = False
         migrate_members_url = None
+
+        # NEW: roster button visibility + URL
+        can_view_roster = False
+        roster_url = None
+        user_view_perm = f"{User._meta.app_label}.view_{User._meta.model_name}"
 
         if object_id:
             obj = self.get_object(request, object_id)
@@ -128,12 +137,20 @@ class StudentClassAdmin(admin.ModelAdmin):
                         args=[obj.pk],
                     )
 
+                # NEW: roster button
+                if self.has_view_permission(request, obj) and request.user.has_perm(user_view_perm):
+                    can_view_roster = True
+                    roster_url = reverse("admin:classes_studentclass_roster", args=[obj.pk])
+
         extra_context.update(
             {
                 "has_next_year": has_next_year,
                 "next_year_url": next_year_url,
                 "can_migrate_members": can_migrate_members,
                 "migrate_members_url": migrate_members_url,
+                # NEW:
+                "can_view_roster": can_view_roster,
+                "roster_url": roster_url,
             }
         )
         return super().changeform_view(request, object_id, form_url, extra_context)
@@ -227,33 +244,14 @@ class StudentClassAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.migrate_members_from_prev_view),
                 name="classes_studentclass_migrate_members_from_prev",
             ),
+            # NEW: roster page (list of students)
+            path(
+                "<int:pk>/roster/",
+                self.admin_site.admin_view(self.roster_view),
+                name="classes_studentclass_roster",
+            ),
         ]
         return my + urls
-
-    def create_next_year_view(self, request, pk):
-        cls = get_object_or_404(StudentClass, pk=pk)
-        try:
-            _ = cls.next_year
-            messages.info(request, "Esta turma já possui uma sucessora.")
-            return redirect(reverse("admin:classes_studentclass_change", args=[cls.pk]))
-        except ObjectDoesNotExist:
-            pass
-
-        try:
-            successor, created = self._find_or_create_successor(cls)
-        except ValidationError as e:
-            messages.error(request, "; ".join(e.messages))
-            return redirect(reverse("admin:classes_studentclass_change", args=[cls.pk]))
-
-        if created:
-            messages.success(
-                request, f"Sequência criada: {successor} (vinculada como ‘próximo ano’)."
-            )
-        else:
-            messages.success(
-                request, f"Turma existente vinculada como ‘próximo ano’: {successor}."
-            )
-        return redirect(reverse("admin:classes_studentclass_change", args=[cls.pk]))
 
     # --------- migrate members from previous class -----------
 
@@ -341,3 +339,83 @@ class StudentClassAdmin(admin.ModelAdmin):
             messages.info(request, f"{total_already} já estavam nas turmas.")
         if skipped:
             messages.info(request, f"{skipped} turma(s) sem ‘ano anterior’ foram ignoradas.")
+
+    # ----------------------- NEW: ROSTER ----------------------
+
+    def roster_view(self, request, pk):
+        """
+        Read-only roster of students for a class.
+        - Search by name/username/email (?q=)
+        - Pagination (?page=)
+        - CSV export (?format=csv)
+        """
+        cls = get_object_or_404(StudentClass, pk=pk)
+
+        # Permissions: need to view the class AND view users
+        user_view_perm = f"{User._meta.app_label}.view_{User._meta.model_name}"
+        if not (self.has_view_permission(request, cls) and request.user.has_perm(user_view_perm)):
+            raise PermissionDenied
+
+        # Base queryset (non-staff only)
+        qs = cls.members.filter(is_staff=False)
+
+        # Search
+        q = (request.GET.get("q") or "").strip()
+        if q:
+            qs = qs.filter(
+                Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
+                | Q(**{f"{User.USERNAME_FIELD}__icontains": q})
+                | Q(email__icontains=q)
+            )
+
+        # Order: first_name, last_name, username
+        qs = qs.only("first_name", "last_name", User.USERNAME_FIELD, "email").order_by(
+            "first_name", "last_name", User.USERNAME_FIELD
+        )
+
+        # CSV export?
+        if (request.GET.get("format") or "").lower() == "csv":
+            resp = HttpResponse(content_type="text/csv; charset=utf-8")
+            safe_name = re.sub(r"[^a-zA-Z0-9_-]+", "_", str(cls.name or "turma"))
+            resp["Content-Disposition"] = f'attachment; filename="turma_{safe_name}_{cls.year or ""}_alunos.csv"'
+            import csv
+
+            w = csv.writer(resp, lineterminator="\n")
+            w.writerow(["nome_completo", "username", "email"])
+            for u in qs:
+                full = f"{u.first_name} {u.last_name}".strip() or str(u)
+                username = getattr(u, User.USERNAME_FIELD, "")
+                w.writerow([full, username, getattr(u, "email", "")])
+            return resp
+
+        # Pagination
+        paginator = Paginator(qs, 50)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+        context = {
+            "opts": self.model._meta,  # so the admin chrome renders correctly
+            "title": f"Alunos — {cls}",
+            "class_obj": cls,
+            "count": paginator.count,
+            "page_obj": page_obj,
+            "paginator": paginator,
+            "is_paginated": page_obj.has_other_pages(),
+            "q": q,
+        }
+        return render(request, "admin/classes/studentclass/roster.html", context)
+
+    def create_next_year_view(self, request, pk):
+        cls = get_object_or_404(StudentClass, pk=pk)
+        try:
+            successor, created = self._find_or_create_successor(cls)
+        except ValidationError as e:
+            messages.error(request, "; ".join(e.messages))
+            return redirect(reverse("admin:classes_studentclass_change", args=[cls.pk]))
+
+        if created:
+            messages.success(request, f"Criada a turma sucessora: {successor}.")
+        else:
+            messages.info(request, f"Turma sucessora já existia; vínculo atualizado: {successor}.")
+
+        return redirect(reverse("admin:classes_studentclass_change", args=[successor.pk]))

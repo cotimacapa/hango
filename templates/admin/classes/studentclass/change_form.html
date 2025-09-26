@@ -2,33 +2,38 @@
 {% load static %}
 
 {% block object-tools-items %}
-  {# keep the default tools #}
   {{ block.super }}
 
-  {# show banner if there is a successor #}
+  {# NOVO: Ver lista de alunos #}
+  {% if can_view_roster and roster_url %}
+    <li>
+      <a class="button" href="{{ roster_url }}">Ver lista de alunos</a>
+    </li>
+  {% endif %}
+
+  {# Informativo se já há sucessora #}
   {% if has_next_year %}
     <li>
-      <a
-        class="button is-light"
-        href=""
-        aria-disabled="true"
-        disabled
-        tabindex="-1"
-        role="button"
-        style="pointer-events:none; cursor:default"
-      >
+      <a class="button is-light"
+         href=""
+         aria-disabled="true" disabled tabindex="-1" role="button"
+         style="pointer-events:none; cursor:default">
         Esta turma já possui uma sucessora.
       </a>
     </li>
+    {% if next_year_url %}
+      <li><a class="button" href="{{ next_year_url }}">Ir para sucessora</a></li>
+    {% endif %}
   {% endif %}
 
-  {% if can_migrate_members %}
+  {# Migrar alunos (se aplicável) #}
+  {% if can_migrate_members and migrate_members_url %}
     <li>
-      <a class="button" href="">Migrar alunos (ano anterior)</a>
+      <a class="button" href="{{ migrate_members_url }}">Migrar alunos (ano anterior)</a>
     </li>
   {% endif %}
 
-  {# show the “create next” button only if there is NO successor #}
+  {# Criar sequência apenas se ainda não existir sucessora #}
   {% if not has_next_year and original.pk %}
     <li>
       <a class="button" href="{% url 'admin:classes_studentclass_create_next_year' original.pk %}">
@@ -36,5 +41,4 @@
       </a>
     </li>
   {% endif %}
-  
 {% endblock %}

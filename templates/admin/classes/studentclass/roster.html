@@ -1,0 +1,111 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <style>
+    .roster-header {
+      display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:wrap; gap:.75rem; margin-bottom:1rem;
+    }
+    .roster-actions { display:flex; gap:.5rem; }
+    .roster-actions .button { text-decoration:none; }
+
+    .roster-search { margin: .5rem 0 1rem; }
+
+    .roster-list { background: var(--body-bg, #111); }
+    .roster-item { padding:.6rem .75rem; border-bottom:1px solid rgba(128,128,128,.2); }
+    .roster-item .name { display:block; }
+    .roster-item .meta { display:block; opacity:.7; }
+
+    /* Desktop: horizontal rows (2 columns) */
+    @media (min-width: 992px) {
+      .roster-item {
+        display: grid;
+        grid-template-columns: minmax(22rem, 32rem) 1fr;  /* Nome | Username/E-mail */
+        align-items: baseline;
+        gap: 1rem;
+      }
+      .roster-item .name,
+      .roster-item .meta { display:inline; }
+    }
+
+    .paginator { display:flex; gap:.5rem; align-items:center; margin-top:1rem; }
+    .paginator a, .paginator span {
+      padding:.35rem .6rem; border-radius:.35rem;
+      border:1px solid rgba(128,128,128,.35); text-decoration:none;
+    }
+    .paginator .current { background: rgba(128,128,128,.2); }
+
+    @media print {
+      .breadcrumbs, .roster-actions, .roster-search, .paginator, header, #user-tools { display:none !important; }
+      .roster-item { border:none; }
+      body { background:#fff; }
+    }
+  </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    › <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    › <a href="{% url 'admin:classes_studentclass_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    › <a href="{% url 'admin:classes_studentclass_change' class_obj.pk %}">{{ class_obj }}</a>
+    › Ver lista de alunos
+  </div>
+{% endblock %}
+
+{# Hide admin’s default <h1> so we use our own header #}
+{% block content_title %}{% endblock %}
+
+{% block content %}
+  <div class="roster-header">
+    <h1 class="page-title">{{ title }}</h1>
+    <div class="roster-actions">
+      <a class="button" href="{% url 'admin:classes_studentclass_change' class_obj.pk %}">Voltar à turma</a>
+      <a class="button" href="#" onclick="window.print(); return false;">Imprimir</a>
+      <a class="button" href="?{% if q %}q={{ q|urlencode }}&{% endif %}format=csv">Exportar CSV</a>
+    </div>
+  </div>
+
+  <p><strong>{{ count }}</strong> aluno{% if count|default:0 != 1 %}s{% endif %}</p>
+
+  <form method="get" class="roster-search">
+    <input type="text" name="q" placeholder="Buscar aluno" value="{{ q|default_if_none:'' }}">
+    <button class="button" type="submit">Buscar</button>
+    {% if q %}<a class="button" href=".">Limpar</a>{% endif %}
+  </form>
+
+  <div class="module roster-list">
+    {% for u in page_obj.object_list %}
+      <div class="roster-item">
+        <span class="name">
+          {{ u.first_name }} {{ u.last_name }}{% if not u.first_name and not u.last_name %}{{ u }}{% endif %}
+        </span>
+        <span class="meta">
+          {{ u.username }}{% if u.email %} • {{ u.email }}{% endif %}
+        </span>
+      </div>
+    {% empty %}
+      <p class="help">Nenhum aluno encontrado.</p>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+    <nav class="paginator">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}">Anterior</a>
+      {% else %}
+        <span class="disabled">Anterior</span>
+      {% endif %}
+
+      <span class="current">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}">Próxima</a>
+      {% else %}
+        <span class="disabled">Próxima</span>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}
