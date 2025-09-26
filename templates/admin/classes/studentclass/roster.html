@@ -62,7 +62,7 @@
   <div class="roster-header">
     <h1 class="page-title">{{ title }}</h1>
     <div class="roster-actions">
-      <a class="button" href="{% url 'admin:classes_studentclass_change' class_obj.pk %}">Voltar à turma</a>
+      <a class="button" href="{% url 'admin:classes_studentclass_change' class_obj.pk %}">← Voltar à turma</a>
       <a class="button" href="#" onclick="window.print(); return false;">Imprimir</a>
       <a class="button" href="?{% if q %}q={{ q|urlencode }}&{% endif %}format=csv">Exportar CSV</a>
     </div>

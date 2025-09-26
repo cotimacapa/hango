@@ -223,6 +223,12 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ("cpf", "first_name", "last_name", "email")
     list_filter = ("is_active", "is_blocked")
 
+    # >>> Pagination & performance
+    list_per_page = 50
+    list_max_show_all = 200
+    show_full_result_count = False
+    # list_select_related = ()  # add FKs here if you surface them in list_display
+
     # Pretty columns
     @admin.display(description="Papel", ordering="is_staff")
     def display_role(self, obj: User) -> str:
