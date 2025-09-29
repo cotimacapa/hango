@@ -420,7 +420,7 @@ html[data-theme="dark"] .table a:hover {
 
 /* Small screens: lighten padding without changing layout */
 @media (max-width: 900px){
-  .splash-right { padding-left: 1rem; max-width: 62ch; }
+  .splash-right { padding-left: 0rem; max-width: 62ch; }
 }
 
 /* Splash — fix text colors for proper contrast (light & dark) */
