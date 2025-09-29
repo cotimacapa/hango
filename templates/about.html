@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sobre — Hango{% endblock %}
+
+{% block content %}
+  <div class="block">
+    <h1 class="title is-3">Sobre o Hango</h1>
+    <p class="subtitle is-6">Sistema de pedidos e retirada de refeições com códigos de barras.</p>
+  </div>
+
+  <div class="content">
+    <p>
+      O Hango agiliza os pedidos de almoço dos estudantes, aplica limites por dia e por categoria,
+      e acelera a retirada com códigos de barras escaneáveis.<br><br>Este é um projeto originalmente desenvolvido
+      pela Coordenação de Tecnologia da Informação (COTI) do IFAP - Campus Macapá para uso interno, com base nos
+      requisitos da cantina escolar. 
+    </p>
+
+    <hr>
+
+    <h2 class="title is-5">Como funciona</h2>
+    <ul>
+      <li>O estudante pode fazer <span class="has-text-weight-bold">um pedido por dia</span> (e um item por categoria).</li>
+      <li>Cada pedido recebe um <span class="has-text-weight-bold">código de retirada</span> e um <span class="has-text-weight-bold">código de barras</span> para impressão.</li>
+      <li>A equipe escaneia o código para marcar a retirada e manter o histórico.</li>
+    </ul>
+
+    <hr>
+
+    <h2 class="title is-5">Ajuda</h2>
+    <p>
+      Procure a equipe da cantina ou um administrador do site. Para suporte técnico,
+      entre em contato com os mantenedores.
+    </p>
+
+    {% if request.user.is_staff %}
+      <div class="notification is-info is-light">
+        <strong>Atalhos para a equipe:</strong>
+        <a class="button is-small" href="{% url 'admin:index' %}">Admin</a>
+        <a class="button is-small" href="{% url 'orders:list' %}">Pedidos</a>
+        <a class="button is-small" href="{% url 'orders:barcodes_print' %}?day={% now 'Y-m-d' %}">Imprimir códigos</a>
+      </div>
+    {% endif %}
+
+    <p class="is-size-7 has-text-grey">
+      © {% now "Y" %} COTI / IFAP.
+    </p>
+  </div>
+{% endblock %}
