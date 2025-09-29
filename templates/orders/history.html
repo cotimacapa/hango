@@ -36,10 +36,10 @@
     </div>
     {% else %}
     <div class="notification is-success is-light">
-      Status: <strong>desbloqueada</strong>. Você pode realizar pedidos.
+      Sua conta está <strong>desbloqueada</strong>. Você pode realizar pedidos.
     </div>
     {% endif %}
-
+    <p><span class="has-text-grey is-size-7">Toque para expandir.</span></p>
     <!-- ======================= MOBILE ACCORDION ======================= -->
     <div data-role="mobile-orders-accordion" class="is-hidden-tablet">
       {% for o in orders %}
@@ -47,7 +47,7 @@
           <summary class="is-clickable" style="list-style:none;">
             <div class="is-flex is-justify-content-space-between is-align-items-center">
               <div>
-                <strong>{{ o.created_at|date:"d/m/Y H:i" }}</strong>
+                <span class="has-text-weight-bold">{{ o.created_at|date:"d/m/Y H:i" }}</span>
                 <div class="has-text-grey is-size-7">
                   {% if o.lines.exists %}
                     {% for ln in o.lines.all %}

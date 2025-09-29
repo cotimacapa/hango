@@ -5,7 +5,7 @@
 
 {% block content %}
   <div class="block">
-    <h1 class="title is-3">Sobre o Hango</h1>
+    <h1 class="title is-3">Sobre o <span class="brand-wordmark title is-2">Hango</span></h1>
     <p class="subtitle is-6">Sistema de pedidos e retirada de refeições com códigos de barras.</p>
   </div>
 
@@ -34,17 +34,8 @@
       entre em contato com os mantenedores.
     </p>
 
-    {% if request.user.is_staff %}
-      <div class="notification is-info is-light">
-        <strong>Atalhos para a equipe:</strong>
-        <a class="button is-small" href="{% url 'admin:index' %}">Admin</a>
-        <a class="button is-small" href="{% url 'orders:list' %}">Pedidos</a>
-        <a class="button is-small" href="{% url 'orders:barcodes_print' %}?day={% now 'Y-m-d' %}">Imprimir códigos</a>
-      </div>
-    {% endif %}
-
     <p class="is-size-7 has-text-grey">
-      © {% now "Y" %} COTI / IFAP.
+      © {% now "Y" %} Julles Pio / COTI - IFAP.
     </p>
   </div>
 {% endblock %}

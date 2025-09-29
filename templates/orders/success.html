@@ -7,8 +7,8 @@
   <p class="subtitle">Obrigado. Seu pedido foi registrado com sucesso.</p>
 
   <div class="box">
-    <p><strong>ID do pedido:</strong> #{{ order.id }}</p>
-    <p class="mt-2"><strong>Código de retirada:</strong> <code>{{ order.pickup_token }}</code></p>
+    <p><span class="has-text-weight-bold">ID do pedido:</span> #{{ order.id }}</p>
+    <p class="mt-2"><span class="has-text-weight-bold">Código de retirada:</span> <code>{{ order.pickup_token }}</code></p>
     <div class="mt-3">
       <svg class="ean13" data-token="{{ order.pickup_token }}"></svg>
       <p class="help">Mostre este código no balcão para retirada.</p>

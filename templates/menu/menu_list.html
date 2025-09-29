@@ -27,6 +27,9 @@
             <div class="card">
               <div class="card-content">
                 <p class="title is-5">{{ item.name }}</p>
+                {% if item.description %}
+                  <p class="subtitle is-7">{{ item.description }}</p>
+                {% endif %}
                 {% if item.category %}
                   <p class="subtitle is-6">{{ item.category }}</p>
                 {% endif %}

@@ -5,6 +5,9 @@ from django.views.i18n import set_language
 from apps.accounts import views as accounts_views   # import our router
 
 urlpatterns = [
+
+    path("", TemplateView.as_view(template_name="splash.html"), name="home"),
+
     path('admin/', admin.site.urls),
 
     # App routes
