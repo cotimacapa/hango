@@ -31,10 +31,11 @@ class StudentClassAdminForm(forms.ModelForm):
         help_text="Selecione os dias em que a turma recebe almoço.",
     )
 
+    # We'll populate the queryset in __init__ after we know the target year
     members = forms.ModelMultipleChoiceField(
         label="",
         required=False,
-        queryset=User.objects.filter(is_staff=False).order_by("first_name", User.USERNAME_FIELD),
+        queryset=User.objects.none(),
         widget=FilteredSelectMultiple("Alunos", is_stacked=False),
         help_text="",
     )
@@ -42,6 +43,58 @@ class StudentClassAdminForm(forms.ModelForm):
     class Meta:
         model = StudentClass
         fields = "__all__"
+
+    # NEW: restrict "available" students to those NOT in another class of the same year
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        base_qs = (
+            User.objects.filter(is_staff=False)
+            .order_by("first_name", User.USERNAME_FIELD)
+        )
+
+        Membership = StudentClass.members.through
+
+        # Figure out the target year:
+        # - When editing: use instance.year
+        # - When adding: try to read from posted/initial data (the "year" field)
+        target_year = None
+        if self.instance and getattr(self.instance, "pk", None):
+            target_year = getattr(self.instance, "year", None)
+        if target_year is None:
+            ystr = (self.data.get("year") or self.initial.get("year") or "").strip()
+            if ystr.isdigit():
+                target_year = int(ystr)
+
+        if target_year is not None:
+            if self.instance and getattr(self.instance, "pk", None):
+                # Editing: exclude users who already belong to another class in the SAME year,
+                # but keep current members visible/selectable.
+                busy_ids = (
+                    Membership.objects
+                    .filter(studentclass__year=target_year)
+                    .exclude(studentclass_id=self.instance.pk)
+                    .values_list("user_id", flat=True)
+                    .distinct()
+                )
+            else:
+                # Adding: exclude anyone who already belongs to any class in the SAME year
+                busy_ids = (
+                    Membership.objects
+                    .filter(studentclass__year=target_year)
+                    .values_list("user_id", flat=True)
+                    .distinct()
+                )
+        else:
+            # Fallback if we don't know the year yet (e.g., the year field hasn't been chosen):
+            # hide students already assigned anywhere to avoid cross-assignment.
+            busy_ids = (
+                Membership.objects
+                .values_list("user_id", flat=True)
+                .distinct()
+            )
+
+        self.fields["members"].queryset = base_qs.exclude(pk__in=busy_ids)
 
     def clean_members(self):
         qs = self.cleaned_data.get("members")
@@ -77,7 +130,7 @@ class StudentClassAdminForm(forms.ModelForm):
             raise ValidationError("A turma anterior já possui outra sucessora.")
 
         return prev
-        
+
 
 # ------------------------ ModelAdmin ------------------------
 
