@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <style>
+    text {
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiOne Color", "Twemoji Mozilla", "Segoe UI Symbol", sans-serif;
+      font-size: 112px;
+    }
+  </style>
+  <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle">🍽️</text>
+</svg>
