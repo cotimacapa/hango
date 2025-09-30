@@ -289,20 +289,22 @@ class UserAdmin(BaseUserAdmin):
         return BoundForm
 
     # Dynamic fieldsets
+# apps/accounts/admin.py
+
     def get_fieldsets(self, request, obj=None):
+        # On the ADD view, render the creation fieldsets so password1/password2 appear
+        if obj is None:
+            return self.add_fieldsets
+
+        # ----- existing change-view logic stays the same below -----
         show_advanced = request.user.is_superuser and request.GET.get("show_advanced") == "1"
 
         # Effective role of the TARGET user (being viewed/edited)
-        if obj:
-            eff_role = compute_role(obj)
-        else:
-            eff_role = request.POST.get("role") or request.GET.get("role") or ROLE_STUDENT
-            if eff_role not in {ROLE_STUDENT, ROLE_STAFF, ROLE_ADMIN}:
-                eff_role = ROLE_STUDENT
+        eff_role = compute_role(obj)
 
         # If a NON-superuser is viewing an Admin user, show read-only label instead of the form field
-        if obj and obj.is_superuser and not request.user.is_superuser:
-            papel_fields = ("display_role",)   # shows “Admin” nicely
+        if obj.is_superuser and not request.user.is_superuser:
+            papel_fields = ("display_role",)
         else:
             papel_fields = ("role",)
 
@@ -314,7 +316,6 @@ class UserAdmin(BaseUserAdmin):
         ]
 
         if eff_role == ROLE_STUDENT:
-            # Show password policy knob for students only
             fieldsets.append(("Senha", {"fields": ("must_change_password",)}))
             fieldsets.append(("Bloqueio", {"fields": BLOCK_FIELDS}))
 
