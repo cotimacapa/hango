@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: hango
+      POSTGRES_USER: hango
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hango -d hango"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_SETTINGS_MODULE: hango.settings
+      SECRET_KEY: ${SECRET_KEY:?set in .env}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?set in .env}
+      # If your settings use DATABASE_URL, this will be available:
+      DATABASE_URL: postgres://hango:${POSTGRES_PASSWORD}@db:5432/hango
+      # If not, we'll patch settings.py after we test.
+      CONN_MAX_AGE: "60"
+    command: >
+      sh -c "
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput &&
+        gunicorn hango.wsgi:application -b 0.0.0.0:8000 -w 3 --timeout 60
+      "
+    volumes:
+      - static:/app/staticfiles
+      - media:/app/media
+    expose: ["8000"]
+
+  proxy:
+    image: caddy:2
+    depends_on: [web]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - static:/srv/static:ro
+      - media:/srv/media:ro
+
+volumes:
+  pgdata:
+  static:
+  media:
+  caddy-data:
+  caddy-config:
