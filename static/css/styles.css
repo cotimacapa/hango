@@ -641,3 +641,12 @@ html[data-theme="dark"] .button.is-light:hover {
     flex: none !important;   /* ignore Bulma's fractional width */
   }
 }
+
+/* Stop the mobile "jump to the right" while the viewport resizes */
+html, body {
+  width: 100%;
+  overflow-x: hidden;      /* prevents any horizontal scroll */
+}
+
+/* (already used) keep the login wrapper solid-width */
+.auth-viewport { width: 100%; }   /* belt-and-suspenders */
