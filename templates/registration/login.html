@@ -1,82 +1,90 @@
 {% extends "base.html" %}
-{% load i18n %}
-
-{% block title %}Entrar • Hango{% endblock %}
-
-{# optional, if your base supports it #}
-{% block body_class %}auth-page{% endblock %}
-
+{% load form_extras %}
+{% block title %}Entrar - Hango{% endblock %}
 {% block content %}
-<section class="section auth-viewport">
-  <div class="container">
-    <div class="columns is-centered">
-      <div class="column is-12-mobile is-8-tablet is-5-desktop is-4-widescreen">
-        <div class="box login-card">
-          <h1 class="title has-text-centered is-3">{% trans "Entrar" %}</h1>
+<div class="columns is-centered">
+  <div class="column is-5" style="max-width:380px;">  {# ~30% narrower #}
+    <div class="box has-text-centered login-card">
+      <h1 class="title is-4" style="margin-bottom:1rem;">Entrar</h1>
 
-          {# non-field errors (e.g. credenciais inválidas) #}
-          {% if form.non_field_errors %}
-            <div class="notification is-danger is-light">
-              {{ form.non_field_errors }}
-            </div>
-          {% endif %}
+      {% if form.errors %}
+        <div class="notification is-danger">Verifique seu usuário e senha.</div>
+      {% endif %}
 
-          <form method="post" action="{% url 'login' %}" novalidate>
-            {% csrf_token %}
-            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <form method="post" action="{% url 'login' %}" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
 
-            {# Username/CPF field. If your form uses "cpf", this falls back to it. #}
-            {% with user_field=form.username|default:form.cpf %}
-              <div class="field">
-                <label class="label" for="{{ user_field.id_for_label }}">{% trans "CPF" %}</label>
-                <div class="control">
-                  <input
-                    class="input"
-                    type="text"
-                    id="{{ user_field.id_for_label }}"
-                    name="{{ user_field.html_name }}"
-                    value="{{ user_field.value|default_if_none:'' }}"
-                    placeholder="{% trans 'CPF' %}"
-                    autocomplete="username">
-                </div>
-                {% for error in user_field.errors %}
-                  <p class="help is-danger">{{ error }}</p>
-                {% endfor %}
-              </div>
-            {% endwith %}
-
-            {# Password field #}
-            {% with pass_field=form.password %}
-              <div class="field">
-                <label class="label" for="{{ pass_field.id_for_label }}">{% trans "Senha" %}</label>
-                <div class="control">
-                  <input
-                    class="input"
-                    type="password"
-                    id="{{ pass_field.id_for_label }}"
-                    name="{{ pass_field.html_name }}"
-                    placeholder="{% trans 'Senha' %}"
-                    autocomplete="current-password">
-                </div>
-                {% for error in pass_field.errors %}
-                  <p class="help is-danger">{{ error }}</p>
-                {% endfor %}
-              </div>
-            {% endwith %}
-
-            <div class="field">
-              <button class="button is-primary is-fullwidth" type="submit">
-                {% trans "Entrar" %}
-              </button>
-            </div>
-          </form>
-
-          <p class="help has-text-centered mt-4">
-            {% trans "Não consegue entrar? Entre em contato com nossa equipe para receber uma senha temporária." %}
-          </p>
+        <div class="field" style="margin-bottom:.75rem;">
+          <div class="control">
+            <input
+              class="input login-input"
+              type="text"
+              name="{{ form.username.html_name }}"
+              id="{{ form.username.id_for_label }}"
+              value="{{ form.username.value|default_if_none:'' }}"
+              placeholder="CPF"
+              autocomplete="username"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              style="text-align:center"
+              required>
+          </div>
+          {{ form.username.errors }}
         </div>
-      </div>
+
+        <div class="field" style="margin-bottom:.9rem;">
+          <div class="control">
+            <input
+              class="input login-input"
+              type="password"
+              name="{{ form.password.html_name }}"
+              id="{{ form.password.id_for_label }}"
+              placeholder="Senha"
+              autocomplete="current-password"
+              style="text-align:center"
+              required>
+          </div>
+          {{ form.password.errors }}
+        </div>
+
+        <!-- Always send user through the post-login router -->
+        <input type="hidden" name="next" value="{% url 'post_login_redirect' %}">
+
+        <div class="field" style="margin-top:.25rem;">
+          <button class="button is-primary login-button" type="submit">
+            Entrar
+          </button>
+        </div>
+      </form>
+
+      <p class="help has-text-centered" style="margin-top:.5rem;">
+        Não consegue entrar? Entre em contato com nossa equipe para receber uma senha temporária.
+      </p>
     </div>
   </div>
-</section>
+</div>
+
+<style>
+  /* ~30% smaller box + a touch less padding */
+  .login-card { padding: 1.0rem 1.0rem; }
+
+  /* Thinner fields */
+  .login-input {
+    height: 2.2rem;          /* down from Bulma's taller variants */
+    padding: .45rem .85rem;
+    font-size: 0.95rem;
+  }
+
+  /* Subtle placeholder that works in light/dark */
+  .login-card .input::placeholder { opacity: 1; }
+
+  /* Slightly smaller, centered submit button */
+  .login-button {
+    min-width: 9rem;
+    height: 2.15rem;
+    padding: 0 .9rem;
+    font-size: 0.95rem;
+  }
+</style>
 {% endblock %}
