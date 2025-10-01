@@ -3,15 +3,6 @@
 {% block title %}Entrar - Hango{% endblock %}
 {% block content %}
 
-<script>
-document.querySelector('form[action$="login/"]').addEventListener('submit', () => {
-  const w = window.innerWidth + 'px';
-  document.documentElement.style.width = w;   // lock width
-  setTimeout(() => { document.documentElement.style.width = ''; }, 2000); // release
-});
-</script>
-
-
 <div class="columns is-centered">
   <div class="column is-5" style="max-width:380px;">  {# ~30% narrower #}
     <div class="box has-text-centered login-card">

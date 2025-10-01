@@ -642,11 +642,15 @@ html[data-theme="dark"] .button.is-light:hover {
   }
 }
 
-/* Stop the mobile "jump to the right" while the viewport resizes */
-html, body {
-  width: 100%;
-  overflow-x: hidden;      /* prevents any horizontal scroll */
-}
+/* Kill any horizontal jiggle */
+html, body { width: 100%; overflow-x: hidden; }
 
-/* (already used) keep the login wrapper solid-width */
-.auth-viewport { width: 100%; }   /* belt-and-suspenders */
+/* Pin the login card to the viewport and hard-center it horizontally */
+.login-card{
+  position: fixed;              /* detach from document flow */
+  left: 50%;                    /* anchor to the middle of the viewport */
+  transform: translateX(-50%);  /* perfect horizontal centering */
+  top: clamp(56px, 12vh, 120px);/* near the top on all devices */
+  width: min(92vw, 380px);      /* respect your 380px cap but be responsive */
+  margin: 0;                    /* ignore column margins */
+}
