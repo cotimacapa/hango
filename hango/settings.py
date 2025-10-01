@@ -18,6 +18,7 @@ DEBUG = os.getenv("DEBUG", "1") == "1"
 ALLOWED_HOSTS = [
     "hango.ifap.edu.br",
     "200.139.14.137",
+    "192.168.10.70",
     "localhost",
     "127.0.0.1",
 ]

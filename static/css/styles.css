@@ -568,3 +568,19 @@ html[data-theme="dark"] .button.is-light:hover {
   letter-spacing: -0.01em;
   text-transform: none;
 }
+
+/* === Auth page centering ================================================ */
+:root { --navbar-h: 3.25rem; } /* Bulma navbar height; adjust if yours differs */
+
+.auth-viewport{
+  min-height: calc(100dvh - var(--navbar-h)); /* fills the screen under the navbar */
+  display: grid;
+  place-items: center;                        /* vertical + horizontal centering */
+  padding-block: clamp(16px, 4vh, 40px);     /* a bit of breathing room */
+  padding-bottom: max(env(safe-area-inset-bottom), 16px); /* iOS safe area */
+}
+
+.login-card{ 
+  width: min(520px, 92vw);                   /* keep the card nicely sized on phones */
+  margin: 0 auto;
+}

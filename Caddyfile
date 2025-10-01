@@ -1,21 +1,21 @@
 {
-  auto_https off
+	# optional: where Caddy sends expiry notices
+	email coti.macapa@ifap.edu.br
 }
 
-:80 {
-  encode zstd gzip
+hango.ifap.edu.br {
+	encode zstd gzip
 
-  @static path /static/*
-  handle @static {
-    root * /srv
-    file_server
-  }
+	# serve static/media from the volumes you mounted at /srv/{static,media}
+	handle /static/* {
+		root * /srv
+		file_server
+	}
+	handle /media/* {
+		root * /srv
+		file_server
+	}
 
-  @media path /media/*
-  handle @media {
-    root * /srv
-    file_server
-  }
-
-  reverse_proxy web:8000
+	# everything else to Django on 8000
+	reverse_proxy web:8000
 }
