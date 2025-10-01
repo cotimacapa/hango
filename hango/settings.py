@@ -14,10 +14,19 @@ load_dotenv(BASE_DIR / ".env")
 # ── Core config ────────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-dev-key")
 DEBUG = os.getenv("DEBUG", "1") == "1"
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+
+ALLOWED_HOSTS = [
+    "hango.ifap.edu.br",
+    "200.139.14.137",
+    "localhost",
+    "127.0.0.1",
+]
 
 # Optional: trust proxies / set CSRF origins via env (safe no-ops if unset)
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
+CSRF_TRUSTED_ORIGINS = [
+    "https://hango.ifap.edu.br",
+    "http://hango.ifap.edu.br",
+]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if os.getenv("USE_X_FORWARDED_PROTO", "0") == "1" else None
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
