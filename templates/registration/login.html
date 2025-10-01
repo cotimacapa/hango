@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% load form_extras %}
 {% block title %}Entrar - Hango{% endblock %}
-{% block content %}
 
-<div class="columns is-centered">
-  <div class="column is-5" style="max-width:380px;">  {# ~30% narrower #}
+{% block content %}
+<div class="columns is-centered login-columns">
+  <div class="column is-12-mobile is-6-tablet" style="max-width:380px;">
     <div class="box has-text-centered login-card">
       <h1 class="title is-4" style="margin-bottom:1rem;">Entrar</h1>
 
@@ -16,7 +16,7 @@
         {% csrf_token %}
         {{ form.non_field_errors }}
 
-        <div class="field" style="margin-bottom:.75rem;">
+        <div class="field" style="margin-bottom:.9rem;">
           <div class="control">
             <input
               class="input login-input"
@@ -25,7 +25,6 @@
               id="{{ form.username.id_for_label }}"
               value="{{ form.username.value|default_if_none:'' }}"
               placeholder="CPF"
-              autocomplete="username"
               inputmode="numeric"
               pattern="[0-9]*"
               style="text-align:center"
@@ -59,23 +58,36 @@
         </div>
       </form>
 
-      <p class="help has-text-centered" style="margin-top:.5rem;">
-        Não consegue entrar? Entre em contato com nossa equipe para receber uma senha temporária.
+      <p class="is-size-7" style="margin-top:.9rem; line-height:1.35;">
+        Não consegue entrar? Entre em contato com nossa equipe
+        para receber uma senha temporária.
       </p>
     </div>
   </div>
 </div>
 
 <style>
-  /* ~30% smaller box + a touch less padding */
-  .login-card { padding: 1.0rem 1.0rem; }
-
-  /* Thinner fields */
-  .login-input {
-    height: 2.2rem;          /* down from Bulma's taller variants */
-    padding: .45rem .85rem;
-    font-size: 0.95rem;
+  /* ---- Login page only: rock-solid centering on small screens ---- */
+  @media (max-width: 768.98px){
+    /* Kill Bulma's negative side gutters that nudge single columns */
+    .login-columns { margin-left: 0 !important; margin-right: 0 !important; }
+    .login-columns > .column {
+      flex: 0 1 auto;
+      width: 100%;
+      max-width: 380px;
+      margin-inline: auto; /* hard center */
+    }
   }
+
+  /* Keep the login card perfectly still (dark-mode global .box:hover sets translateY) */
+  .login-card { transition: none !important; }
+  .login-card,
+  html[data-theme="dark"] .login-card:hover {
+    transform: none !important;
+  }
+
+  /* Slight polish for inputs */
+  .login-input { text-align: center; }
 
   /* Subtle placeholder that works in light/dark */
   .login-card .input::placeholder { opacity: 1; }
