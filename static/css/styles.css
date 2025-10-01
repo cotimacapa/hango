@@ -617,3 +617,27 @@ html[data-theme="dark"] .button.is-light:hover {
   }
 }
 
+
+
+/* Desktop: hard-center the login card regardless of Bulma gutters/containers */
+@media (min-width: 1024px) {
+  /* When a .login-card is inside the columns wrapper,
+     switch that wrapper to grid and center the child. */
+  .columns.is-centered:has(.login-card) {
+    display: grid !important;
+    justify-items: center;   /* center horizontally */
+    align-items: start;      /* keep it near the top */
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Make the single column shrink to content and drop side paddings */
+  .columns.is-centered:has(.login-card) > .column {
+    width: auto !important;
+    max-width: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin: 0 !important;
+    flex: none !important;   /* ignore Bulma's fractional width */
+  }
+}
