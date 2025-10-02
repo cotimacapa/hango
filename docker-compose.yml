@@ -35,6 +35,7 @@ services:
     volumes:
       - static:/app/staticfiles
       - media:/app/media
+      - /srv/hango/seed:/seed:ro
     expose: ["8000"]
 
   proxy:
