@@ -3,16 +3,17 @@ from django.db import models, transaction
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from django.db.models.functions import Lower  # NEW: for case-insensitive unique constraint
 
 # ⬇️ Domain rule import: Mon–Fri default and pretty-printer
 from hango.core.weekdays import MON_FRI_MASK, human_days as human_days_str
 
 
 class StudentClass(models.Model):
-    # Human name for the class/cohort (kept unique as in your current schema)
-    name = models.CharField("Nome", max_length=120, unique=True)
+    # Human name for the class/cohort (no longer globally unique; uniqueness is (name, year) case-insensitive)
+    name = models.CharField("Nome", max_length=120)
 
-    # NEW: canonical academic year for this cohort (e.g., 2025)
+    # Canonical academic year for this cohort (e.g., 2025)
     # Keep your existing academic_year for compatibility, but prefer 'year' going forward.
     year = models.PositiveIntegerField("Ano", null=True, blank=True, db_index=True)
 
@@ -42,7 +43,7 @@ class StudentClass(models.Model):
         limit_choices_to={"is_staff": False, "groups__name": "Aluno"},
     )
 
-    # NEW: link to previous-year class; gives you obj.next_year automatically
+    # Link to previous-year class; gives you obj.next_year automatically
     prev_year = models.OneToOneField(
         "self",
         verbose_name=_("Turma do ano anterior"),
@@ -82,6 +83,13 @@ class StudentClass(models.Model):
             models.Index(fields=("is_active",)),
             models.Index(fields=("academic_year",)),
             models.Index(fields=("year",)),
+        ]
+        # NEW: case-insensitive uniqueness on (name, year)
+        constraints = [
+            models.UniqueConstraint(
+                Lower("name"), "year",
+                name="uniq_studentclass_name_year_ci",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -126,10 +134,9 @@ class StudentClass(models.Model):
         current members. Links as both next_year (preferred) and successor (legacy).
         """
         # compute the numeric year to assign
-        new_year = (
-            year if year is not None
-            else ((self.year or self.academic_year) + 1 if (self.year or self.academic_year) else None)
-        )
+        base_year = self.year or self.academic_year
+        new_year = year if year is not None else (base_year + 1 if base_year else None)
+
         with transaction.atomic():
             next_class = StudentClass.objects.create(
                 name=name or f"{self.name} — próximo",

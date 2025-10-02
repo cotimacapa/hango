@@ -11,13 +11,12 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
 from .models import StudentClass
 from hango.admin.widgets import WeekdayMaskField  # bitmask widget for weekdays
-from django.shortcuts import get_object_or_404, redirect, render
 
 User = get_user_model()
 
@@ -44,7 +43,7 @@ class StudentClassAdminForm(forms.ModelForm):
         model = StudentClass
         fields = "__all__"
 
-    # NEW: restrict "available" students to those NOT in another class of the same year
+    # Restrict "available" students to those NOT in another class of the same year
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -165,7 +164,7 @@ class StudentClassAdmin(admin.ModelAdmin):
         can_migrate_members = False
         migrate_members_url = None
 
-        # NEW: roster button visibility + URL
+        # Roster button visibility + URL
         can_view_roster = False
         roster_url = None
         user_view_perm = f"{User._meta.app_label}.view_{User._meta.model_name}"
@@ -190,7 +189,7 @@ class StudentClassAdmin(admin.ModelAdmin):
                         args=[obj.pk],
                     )
 
-                # NEW: roster button
+                # roster button
                 if self.has_view_permission(request, obj) and request.user.has_perm(user_view_perm):
                     can_view_roster = True
                     roster_url = reverse("admin:classes_studentclass_roster", args=[obj.pk])
@@ -201,7 +200,6 @@ class StudentClassAdmin(admin.ModelAdmin):
                 "next_year_url": next_year_url,
                 "can_migrate_members": can_migrate_members,
                 "migrate_members_url": migrate_members_url,
-                # NEW:
                 "can_view_roster": can_view_roster,
                 "roster_url": roster_url,
             }
@@ -254,25 +252,48 @@ class StudentClassAdmin(admin.ModelAdmin):
     # ----------------- create/link successor -----------------
 
     def _find_or_create_successor(self, cls: StudentClass) -> Tuple[StudentClass, bool]:
+        """
+        Find or create the successor class:
+        - Name bumped (e.g., '1º Ano' -> '2º Ano')
+        - Year = current year + 1 (fallback to academic_year if year is missing)
+        - Case-insensitive lookup by (name, year)
+        """
         target_name = self._guess_successor_name(cls.name)
-        expected_year = (cls.year + 1) if cls.year is not None else None
+
+        # Prefer the canonical 'year', fallback to legacy 'academic_year'
+        base_year = cls.year or cls.academic_year
+        expected_year = (base_year + 1) if base_year is not None else None
 
         with transaction.atomic():
-            existing = StudentClass.objects.filter(name=target_name).first()
+            # Case-insensitive lookup by (name, expected_year) when we have a year
+            qs = StudentClass.objects.filter(name__iexact=target_name)
+            if expected_year is not None:
+                qs = qs.filter(year=expected_year)
+            existing = qs.first()
+
             if existing:
+                # If someone linked it elsewhere, block
                 if existing.prev_year_id and existing.prev_year_id != cls.id:
                     raise ValidationError(
                         f"Já existe a turma '{existing}' vinculada a outra anterior. "
                         "Ajuste manualmente se necessário."
                     )
+
+                # Normalize missing attrs
+                updates = []
                 if existing.year is None and expected_year is not None:
                     existing.year = expected_year
+                    updates.append("year")
                 if not existing.days_mask:
                     existing.days_mask = cls.days_mask
+                    updates.append("days_mask")
+
                 existing.prev_year = cls
-                existing.save()
+                updates.append("prev_year")
+                existing.save(update_fields=updates)
                 return existing, False
 
+            # Create brand-new successor with the correct next year
             successor = StudentClass.objects.create(
                 name=target_name,
                 year=expected_year,
@@ -297,7 +318,7 @@ class StudentClassAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.migrate_members_from_prev_view),
                 name="classes_studentclass_migrate_members_from_prev",
             ),
-            # NEW: roster page (list of students)
+            # Roster page (list of students)
             path(
                 "<int:pk>/roster/",
                 self.admin_site.admin_view(self.roster_view),
@@ -393,7 +414,7 @@ class StudentClassAdmin(admin.ModelAdmin):
         if skipped:
             messages.info(request, f"{skipped} turma(s) sem ‘ano anterior’ foram ignoradas.")
 
-    # ----------------------- NEW: ROSTER ----------------------
+    # ----------------------- ROSTER ----------------------
 
     def roster_view(self, request, pk):
         """
