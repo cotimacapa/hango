@@ -18,7 +18,12 @@
       <button class="button is-medium is-link" type="submit">Confirmar</button>
     </div>
   </form>
-
+  <div class="content is-small has-text-grey-light mt-2" aria-label="Dicas para leitura do código">
+    <ul style="margin-top:.25rem; color:burlywood;">
+      <li>Peça que o aluno aumente a luminosidade da tela do dispositivo; isso facilita a leitura do código de barras.</li>
+      <li>Imperfeições, rachaduras na tela ou certos tipos de películas podem atrapalhar a leitura. Nesses casos, pode ser necessário digitar o código manualmente (ou marcar o pedido como entregue na tela de Pedidos).</li>
+    </ul>
+  </div>
   {% if result %}
     {% if result == "ok" %}
       <article class="message is-success">
