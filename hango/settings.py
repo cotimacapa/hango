@@ -143,3 +143,6 @@ MESSAGE_TAGS = {
     messages.WARNING: 'warning',  # Bulma has is-warning (yellow)
     messages.ERROR: 'danger',     # Bulma uses is-danger (red)
 }
+
+# ── Custom settings ───────────────────────────────────────────────────────────
+HANGO_BULK_IMPORT_COMMAND = "import_users_csv"

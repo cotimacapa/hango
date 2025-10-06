@@ -12,6 +12,15 @@ from django.db.models import Case, When, Value, IntegerField, Exists, OuterRef
 from django.utils.html import format_html
 from django.templatetags.static import static
 
+# NEW: imports for bulk upload UI
+from django.urls import path, reverse
+from django.shortcuts import render, redirect
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from django.http import HttpResponse
+from io import StringIO
+import tempfile, os, csv, io, re
+
 from .models import User, BlockEvent
 from .forms import UserCreationForm, UserChangeForm
 from hango.admin.widgets import WeekdayMaskField
@@ -200,6 +209,42 @@ class UserAdminAddForm(UserCreationForm):
             )
 
 
+# --- Bulk-import helpers (CSV -> temp -> management command) -------------
+
+def _cpf_fix_bytes(file_bytes: bytes) -> bytes:
+    """Return a CSV (bytes) with CPF forced to 11-digit text (zero-padded)."""
+    text = file_bytes.decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        raise ValueError("CSV sem cabeçalhos")
+    # Match header 'cpf' case-insensitively
+    cpf_key = next((h for h in reader.fieldnames if h.lower().strip() == "cpf"), None)
+    if not cpf_key:
+        raise ValueError("Cabeçalho 'cpf' não encontrado")
+    out_io = io.StringIO()
+    writer = csv.DictWriter(out_io, fieldnames=reader.fieldnames)
+    writer.writeheader()
+    for lineno, row in enumerate(reader, start=2):
+        raw = (row.get(cpf_key) or "").strip()
+        digits = re.sub(r"\D+", "", raw)
+        if not digits:
+            raise ValueError(f"Linha {lineno}: CPF vazio")
+        if len(digits) > 11:
+            raise ValueError(f"Linha {lineno}: CPF com mais de 11 dígitos ({raw!r})")
+        row[cpf_key] = digits.zfill(11)
+        writer.writerow(row)
+    return out_io.getvalue().encode("utf-8")
+
+
+def _pick_command_names():
+    from django.conf import settings
+    c = []
+    if getattr(settings, "HANGO_BULK_IMPORT_COMMAND", None):
+        c.append(settings.HANGO_BULK_IMPORT_COMMAND)
+    c += ["import_users_csv", "users_import_csv", "import_users"]
+    return c
+
+
 # --- User Admin -----------------------------------------------------------
 
 @admin.register(User)
@@ -219,7 +264,8 @@ class UserAdmin(BaseUserAdmin):
         "no_show_streak",
         "human_lunch_days_override",
     )
-    ordering = ("cpf",)
+    # CHANGED: autosort by name
+    ordering = ("first_name", "last_name", "cpf")
     search_fields = ("cpf", "first_name", "last_name", "email")
     list_filter = ("is_active", "is_blocked")
 
@@ -227,7 +273,9 @@ class UserAdmin(BaseUserAdmin):
     list_per_page = 50
     list_max_show_all = 200
     show_full_result_count = False
-    # list_select_related = ()  # add FKs here if you surface them in list_display
+
+    # NEW: add custom button on changelist
+    change_list_template = "admin/accounts/user/change_list.html"
 
     # Pretty columns
     @admin.display(description="Papel", ordering="is_staff")
@@ -289,8 +337,6 @@ class UserAdmin(BaseUserAdmin):
         return BoundForm
 
     # Dynamic fieldsets
-# apps/accounts/admin.py
-
     def get_fieldsets(self, request, obj=None):
         # On the ADD view, render the creation fieldsets so password1/password2 appear
         if obj is None:
@@ -371,9 +417,6 @@ class UserAdmin(BaseUserAdmin):
                 output_field=IntegerField(),
             )
         )
-
-        # NOTE: we no longer exclude superusers here — staff can see Admins,
-        # but they won't be able to edit/delete them (see permissions below).
         return qs
 
     # ---- Permissions: staff can VIEW admin users, but cannot CHANGE/DELETE --
@@ -382,12 +425,10 @@ class UserAdmin(BaseUserAdmin):
         return bool(obj and getattr(obj, "is_superuser", False))
 
     def has_view_permission(self, request, obj=None):
-        # Allow viewing anything the user normally can; do not block Admin objects.
         return super().has_view_permission(request, obj)
 
     def has_change_permission(self, request, obj=None):
         if not request.user.is_superuser and self._obj_is_admin(obj):
-            # Read-only view for staff when opening an Admin user
             return False
         return super().has_change_permission(request, obj)
 
@@ -431,13 +472,11 @@ class UserAdmin(BaseUserAdmin):
         # Student
         obj.is_superuser = False
         obj.is_staff = False
-        # On first creation of a Student, force password change by default
         if not change and not obj.must_change_password:
             obj.must_change_password = True
         obj.save()
         obj.groups.remove(staff_group)
 
-    # Loud logging if something goes sideways
     def render_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
         resp = super().render_change_form(request, context, add, change, form_url, obj)
         if request.method == "POST":
@@ -454,6 +493,87 @@ class UserAdmin(BaseUserAdmin):
                         messages.error(request, "Erro no formulário: " + "; ".join(non_field))
         return resp
 
+    # ------------------------ Bulk upload URLs & views ---------------------
+
+    def get_urls(self):
+        urls = super().get_urls()
+        extra = [
+            path(
+                "bulk-upload/",
+                self.admin_site.admin_view(self.bulk_upload_view),
+                name="accounts_user_bulk_upload",
+            ),
+            path(
+                "bulk-template/",
+                self.admin_site.admin_view(self.bulk_template_view),
+                name="accounts_user_bulk_template",
+            ),
+        ]
+        return extra + urls
+
+    def bulk_upload_view(self, request):
+        if not self.has_add_permission(request):
+            messages.error(request, "Sem permissão para adicionar usuários.")
+            return redirect("admin:accounts_user_changelist")
+
+        if request.method == "POST" and request.FILES.get("csv"):
+            raw = request.FILES["csv"].read()
+            try:
+                fixed = _cpf_fix_bytes(raw)
+            except Exception as e:
+                messages.error(request, f"CSV inválido: {e}")
+                return redirect("admin:accounts_user_bulk_upload")
+
+            used = None
+            out, err = StringIO(), StringIO()
+            tmp_path = None
+            try:
+                with tempfile.NamedTemporaryFile("wb", suffix=".csv", delete=False) as tmp:
+                    tmp.write(fixed)
+                    tmp_path = tmp.name
+
+                for name in _pick_command_names():
+                    try:
+                        call_command(name, tmp_path, stdout=out, stderr=err)
+                        used = name
+                        break
+                    except CommandError:
+                        continue
+
+                if not used:
+                    raise CommandError(
+                        "Nenhum comando compatível encontrado. "
+                        "Defina HANGO_BULK_IMPORT_COMMAND em settings.py."
+                    )
+
+                messages.success(request, f"Importação concluída via comando '{used}'.")
+                tail = out.getvalue().strip()
+                if tail:
+                    messages.info(request, f"Saída:\n{tail[-1500:]}")
+            except Exception as e:
+                tail_err = err.getvalue().strip()
+                msg = f"Falha ao importar: {e}"
+                if tail_err:
+                    msg += f"\n{tail_err[-1500:]}"
+                messages.error(request, msg)
+            finally:
+                if tmp_path:
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+            return redirect("admin:accounts_user_changelist")
+
+        ctx = {**self.admin_site.each_context(request), "title": "Adicionar Usuários em Lote"}
+        return render(request, "admin/accounts/user/bulk_upload.html", ctx)
+
+    def bulk_template_view(self, request):
+        # Adjust headers if your command expects something different
+        content = "name,email,cpf,password,password_change_required\n"
+        resp = HttpResponse(content, content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="hango_user_import_template.csv"'
+        return resp
+
 
 # --- Groups: visible to Equipe, editable only by Admin -------------------
 
@@ -464,11 +584,9 @@ except admin.sites.NotRegistered:
 
 @admin.register(Group)
 class GroupAdmin(DjangoGroupAdmin):
-    # Equipe (is_staff) and Admin can open the list and detail pages
     def has_view_permission(self, request, obj=None):
         return request.user.is_superuser or request.user.is_staff
 
-    # Only Admin can add/change/delete groups
     def has_add_permission(self, request):
         return request.user.is_superuser
 
@@ -478,7 +596,6 @@ class GroupAdmin(DjangoGroupAdmin):
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
 
-    # No bulk actions for Equipe (prevents any mass ops)
     def get_actions(self, request):
         actions = super().get_actions(request)
         if not request.user.is_superuser:

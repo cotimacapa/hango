@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <h1>Adicionar Usuários em Lote</h1>
+  <p>Baixe o modelo, preencha e envie o CSV. Os dados serão validados pelo sistema." %}</p>
+
+  <p>
+    <a class="button" href="{% url 'admin:accounts_user_bulk_template' %}">
+      {% trans "Baixar modelo CSV" %}
+    </a>
+  </p>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="id_csv">Arquivo CSV</label>
+      <input type="file" id="id_csv" name="csv" accept=".csv" required />
+    </div>
+    <div class="submit-row">
+      <input type="submit" value="{% trans 'Enviar' %}" class="default" />
+    </div>
+  </form>
+{% endblock %}
