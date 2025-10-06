@@ -5,6 +5,7 @@ from datetime import timedelta, date
 from django.conf import settings
 from django.utils import timezone
 
+from datetime import time as dtime
 # “Dias sem atendimento” live in the calendar app
 try:
     from apps.calendar.models import DiaSemAtendimento
@@ -270,21 +271,30 @@ def is_closed(dia: date) -> bool:
     ).exists()
 
 
+# import the setting reader
+from apps.calendar.models import OrderCutoffSetting  # adjust path to your app
+
 def next_eligible_service_day(user, now=None) -> date:
     """
-    Midnight cutoff:
-      base = localdate + 1
-      skip non-service weekdays and closures
+    Configurable cutoff:
+      - Before cutoff local time: base = today + 1
+      - At/After cutoff:          base = today + 2
+    Then skip non-service weekdays and closures.
     """
     tz_now = timezone.localtime(now or timezone.now())
-    dia = timezone.localdate(tz_now) + timedelta(days=1)
+    today = timezone.localdate(tz_now)
+
+    cutoff = OrderCutoffSetting.get_cutoff_time(default_hour=15, default_minute=0)
+    base_days = 1 if tz_now.time() < cutoff else 2
+
+    dia = today + timedelta(days=base_days)
 
     for _ in range(31):
         if is_lunch_day_for_user(user, dia) and not is_closed(dia):
             return dia
         dia += timedelta(days=1)
 
-    return dia  # very unlikely; safety
+    return today + timedelta(days=base_days)
 
 # --- daily limit enforcement -------------------------------------------------
 from django.core.exceptions import ValidationError

@@ -1,5 +1,12 @@
 from django.contrib import admin
 from .models import DiaSemAtendimento
+from django import forms
+from datetime import time
+
+from django.urls import reverse
+from django.shortcuts import redirect
+
+from .models import OrderCutoffSetting
 
 @admin.register(DiaSemAtendimento)
 class DiaSemAtendimentoAdmin(admin.ModelAdmin):
@@ -34,3 +41,50 @@ class DiaSemAtendimentoAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             return {}
         return actions
+
+def _half_hour_choices():
+    # 00:00 → 23:30
+    out = []
+    for h in range(0, 24):
+        for m in (0, 30):
+            out.append((time(h, m), f"{h:02d}:{m:02d}"))
+    return out
+
+class OrderCutoffForm(forms.ModelForm):
+    cutoff_time = forms.TypedChoiceField(
+        label="Horário limite",
+        coerce=lambda s: time.fromisoformat(s),
+        choices=[(f"{h:02d}:{m:02d}", f"{h:02d}:{m:02d}") for h in range(24) for m in (0, 30)],
+        required=False,
+        help_text="Ex.: 15:00. Se vazio, usa 15:00 por padrão."
+    )
+
+    class Meta:
+        model = OrderCutoffSetting
+        fields = ["cutoff_time"]
+
+    def initial_from_instance(self):
+        if self.instance and self.instance.cutoff_time:
+            self.initial["cutoff_time"] = self.instance.cutoff_time.strftime("%H:%M")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.initial_from_instance()
+
+@admin.register(OrderCutoffSetting)
+class OrderCutoffAdmin(admin.ModelAdmin):
+    form = OrderCutoffForm
+
+    def has_add_permission(self, request):
+        # Enforce singleton: allow add only if none exists
+        return not OrderCutoffSetting.objects.exists()
+
+    def changelist_view(self, request, extra_context=None):
+        obj = OrderCutoffSetting.objects.first()
+        if obj:
+            url = reverse(
+                f"admin:{OrderCutoffSetting._meta.app_label}_{OrderCutoffSetting._meta.model_name}_change",
+                args=[obj.pk],
+            )
+            return redirect(url)
+        return super().changelist_view(request, extra_context)
