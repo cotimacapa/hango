@@ -145,4 +145,4 @@ MESSAGE_TAGS = {
 }
 
 # ── Custom settings ───────────────────────────────────────────────────────────
-HANGO_BULK_IMPORT_COMMAND = "import_users_csv"
+HANGO_BULK_IMPORT_COMMAND = "createsuperuser"
