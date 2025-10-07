@@ -1,0 +1,132 @@
+{% extends "admin/base_site.html" %}
+{% block extrahead %}
+<style>
+  :root { --panel:#181a1f; --panel-2:#20242b; --text:#e8e8e8; --muted:#9aa3ad; --border:#2c323b; }
+  body { color: var(--text) }
+  .toolbar { margin-bottom:12px; display:flex; gap:8px }
+  h2{margin-top:24px}
+  table.report { width:100%; border-collapse:separate; border-spacing:0; background:var(--panel); }
+  table.report thead th{
+    background:var(--panel-2); color:var(--text);
+    border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1;
+    text-transform:uppercase; letter-spacing:.02em; font-size:.92rem;
+  }
+  table.report th,table.report td{ padding:8px 10px; border-bottom:1px solid var(--border); }
+  table.report tbody tr:nth-child(odd){ background:#1b1f27; }
+  table.report tbody tr:nth-child(even){ background:#141923; }
+  table.report td.right,table.report th.right{ text-align:right; font-variant-numeric:tabular-nums; }
+  table.report td.cpf{ font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; letter-spacing:.02em; }
+  table.report tfoot td{ background:#202734; font-weight:600; color:#d8dee9; }
+  .muted{color:var(--muted)}
+  @media print{
+    .toolbar{display:none}
+    body{ color:#000; background:#fff }
+    table.report{ background:#fff }
+    table.report thead th{ background:#eee; color:#000 }
+    table.report tbody tr:nth-child(odd),table.report tbody tr:nth-child(even){ background:#fff }
+    thead{ display:table-header-group }
+  }
+  .appendix h3{margin:18px 0 8px}
+</style>
+{% endblock %}
+{% block content %}
+  <div class="toolbar" style="margin-bottom:12px;display:flex;gap:8px">
+    <a class="button" href="javascript:history.back()">&larr; Voltar</a>
+    <a class="button" href="javascript:window.print()">Imprimir</a>
+  </div>
+
+  <p class="muted">
+    Período: {{ periodo.inicio }} a {{ periodo.fim }}.
+    {% if incluir_cancelados %}Incluindo cancelados.{% else %}Excluindo cancelados.{% endif %}
+  </p>
+
+  {% for sec in sections %}
+    <h2>{{ sec.turma.name }}</h2>
+    <table class="report">
+      <thead>
+        <tr>
+          <th>Aluno</th>
+          <th>CPF</th>
+          <th class="right">Total</th>
+          <th class="right">Entregues</th>
+          <th class="right">Não entregue</th>
+          <th class="right">Cancelados</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in sec.rows %}
+        <tr>
+          <td>{{ r.nome }}</td>
+          <td class="cpf">{{ r.cpf }}</td>
+          <td class="right">{{ r.total }}</td>
+          <td class="right">{{ r.entregues }}</td>
+          <td class="right">{{ r.nao_entregue }}</td>
+          <td class="right">{{ r.cancelados }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Totais — {{ sec.turma.name }}</td>
+          <td class="right">{{ sec.totals.total }}</td>
+          <td class="right">{{ sec.totals.entregues }}</td>
+          <td class="right">{{ sec.totals.nao_entregue }}</td>
+          <td class="right">{{ sec.totals.cancelados }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  {% endfor %}
+
+  {% if grand_totals %}
+  <h2>Totais gerais</h2>
+  <table class="report">
+    <thead>
+      <tr>
+        <th style="width:40%">—</th>
+        <th class="right">Total</th>
+        <th class="right">Entregues</th>
+        <th class="right">Não entregue</th>
+        <th class="right">Cancelados</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Período completo</td>
+        <td class="right">{{ grand_totals.total }}</td>
+        <td class="right">{{ grand_totals.entregues }}</td>
+        <td class="right">{{ grand_totals.nao_entregue }}</td>
+        <td class="right">{{ grand_totals.cancelados }}</td>
+      </tr>
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Histórico detalhado para impressão -->
+  {% if incluir_historico %}
+    <div class="appendix">
+      <h2 style="margin-top:24px">Histórico detalhado (por pedido)</h2>
+      {% for sec in sections %}
+        <h3>{{ sec.turma.name }}</h3>
+        {% for r in sec.rows %}
+          {% if r.historico %}
+            <h4>{{ r.nome }} — <span class="muted">{{ r.cpf }}</span></h4>
+            <table class="report">
+              <thead>
+                <tr><th>Data</th><th>Status</th><th>Entrega</th></tr>
+              </thead>
+              <tbody>
+                {% for h in r.historico %}
+                <tr>
+                  <td>{{ h.data }}</td>
+                  <td>{{ h.status }}</td>
+                  <td>{{ h.entrega }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}

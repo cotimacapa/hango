@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "apps.orders",                        # if there is an AppConfig class, prefer "apps.orders.apps.OrdersConfig"
     "apps.classes.apps.ClassesConfig",
     "apps.calendar.apps.CalendarConfig",
+    "apps.reports",
 ]
 
 # ── Middleware ────────────────────────────────────────────────────────────────

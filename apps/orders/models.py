@@ -205,3 +205,13 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.qty}× {self.item}"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# NEW: Proxy model para criar a seção dedicada "Relatórios" no Admin
+# ──────────────────────────────────────────────────────────────────────────
+class OrderReports(Order):
+    class Meta:
+        proxy = True
+        verbose_name = "Relatório"
+        verbose_name_plural = "Relatórios"

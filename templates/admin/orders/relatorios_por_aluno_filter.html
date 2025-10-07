@@ -1,0 +1,80 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <form method="get" id="report-form">
+    {{ form.as_p }}
+    <input type="hidden" name="aluno_id" id="aluno_id">
+
+    <div id="aluno-search" style="max-width:420px;">
+      <label for="aluno_q">Buscar aluno (nome ou CPF):</label>
+      <input id="aluno_q" type="text" autocomplete="off" class="vTextField" placeholder="Digite para buscar">
+      <ul id="aluno_suggestions" style="margin-top:4px; list-style:none; padding:0; border:1px solid #2c323b; display:none;"></ul>
+      <small class="help"><br>Escolha um aluno nos resultados; o relatório será gerado apenas para ele.</small>
+    </div>
+
+    <p style="margin-top:12px;"><button type="submit" class="button default">Gerar</button></p>
+  </form>
+
+  <script>
+  (function(){
+    const q = document.getElementById('aluno_q');
+    const ul = document.getElementById('aluno_suggestions');
+    const hid = document.getElementById('aluno_id');
+    const turmaSel = document.getElementById('id_turma'); // optional filter
+
+    let timer=null, idx=-1;
+
+    function clearList(){ ul.innerHTML=''; ul.style.display='none'; idx=-1; }
+    function render(items){
+      clearList();
+      if(!items.length) return;
+      items.forEach((it,i)=>{
+        const li=document.createElement('li');
+        li.textContent=it.label;
+        li.dataset.id=it.id;
+        li.style.padding='6px 8px';
+        li.style.cursor='pointer';
+        li.addEventListener('mouseenter',()=>highlight(i));
+        li.addEventListener('mousedown',(e)=>{ e.preventDefault(); choose(i); });
+        ul.appendChild(li);
+      });
+      ul.style.display='block';
+      highlight(0);
+    }
+    function highlight(i){
+      idx=i;
+      [...ul.children].forEach((li,j)=>{
+        li.style.background = j===i ? '#253041' : '';
+      });
+    }
+    function choose(i){
+      const li = ul.children[i];
+      if(!li) return;
+      hid.value = li.dataset.id;
+      q.value = li.textContent;
+      clearList();
+    }
+    function fetchNow(){
+      const term = q.value.trim();
+      if(!term){ clearList(); hid.value=''; return; }
+      const turma = turmaSel ? turmaSel.value : '';
+      const url = new URL(window.location.origin + "{% url 'admin:orders_order_relatorios_search_alunos' %}");
+      url.searchParams.set('q', term);
+      if(turma) url.searchParams.set('turma_id', turma);
+      fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r=>r.json())
+        .then(d=>render(d.results||[]))
+        .catch(()=>clearList());
+    }
+
+    q.addEventListener('input', ()=>{ clearTimeout(timer); timer=setTimeout(fetchNow, 180); });
+    q.addEventListener('keydown', (e)=>{
+      if(ul.style.display==='none') return;
+      if(e.key==='ArrowDown'){ e.preventDefault(); highlight(Math.min(idx+1, ul.children.length-1)); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); highlight(Math.max(idx-1, 0)); }
+      else if(e.key==='Enter'){ e.preventDefault(); choose(idx); }
+      else if(e.key==='Escape'){ clearList(); }
+    });
+    document.addEventListener('click', (e)=>{ if(!ul.contains(e.target) && e.target!==q) clearList(); });
+  })();
+  </script>
+{% endblock %}

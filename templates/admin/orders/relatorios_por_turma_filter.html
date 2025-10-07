@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <form method="get" id="turma-filter-form">
+    {{ form.as_p }}
+    <p><button type="submit" class="button default">Gerar</button></p>
+  </form>
+
+  <script>
+  (function(){
+    const form = document.getElementById('turma-filter-form');
+    const cb   = document.getElementById('id_mostrar_inativas');
+    const sel  = document.getElementById('id_turma');
+
+    function flipEmptyLabel(){
+      if (!sel) return;
+      const first = sel.querySelector('option[value=""]');
+      if (first){
+        first.textContent = (cb && cb.checked)
+          ? '(todas as turmas)'
+          : '(todas as turmas ativas)';
+      }
+    }
+
+    if (cb){
+      cb.addEventListener('change', function(){
+        // Update the label immediately for visual feedback
+        flipEmptyLabel();
+
+        // Submit in "filter mode" ONCE to repopulate the dropdown on the server
+        const flag = document.createElement('input');
+        flag.type = 'hidden';
+        flag.name = '__filter__';
+        flag.value = '1';
+        form.appendChild(flag);
+        form.submit();
+        // after navigation the DOM is replaced; no need to remove flag here
+      });
+    }
+
+    // Ensure label matches state on initial load
+    flipEmptyLabel();
+  })();
+  </script>
+{% endblock %}

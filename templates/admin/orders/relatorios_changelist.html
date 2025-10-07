@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p>Escolha um tipo de relatório:</p>
+  <p style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a class="button default" href="{{ url_por_aluno }}">Por Aluno</a>
+    <a class="button default" href="{{ url_por_turma }}">Por Turma</a>
+  </p>
+  <hr>
+  <p style="color:#666">Dica: gere o relatório e use “Imprimir → Salvar como PDF”.</p>
+{% endblock %}
