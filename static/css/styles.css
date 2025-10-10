@@ -568,3 +568,185 @@ html[data-theme="dark"] .button.is-light:hover {
   letter-spacing: -0.01em;
   text-transform: none;
 }
+
+/* ---------- Mobile navbar upgrades (no desktop changes) ---------- */
+@media (max-width: 768px) {
+  /* Larger tap targets overall */
+  .navbar {
+    min-height: 64px;                 /* taller bar */
+  }
+
+  /* Bigger burger button */
+  .navbar-brand .navbar-burger {
+    width: 56px;
+    height: 56px;
+    margin-left: .25rem;
+    margin-right: .25rem;
+  }
+  .navbar-burger span {
+    height: 3px;                      /* thicker lines */
+    left: 14px; right: 14px;          /* shorter bars look nicer when bigger */
+  }
+
+  /* Open menu: make items larger and easier to tap */
+  .navbar-menu {
+    /* default closed state still off-canvas; Bulma toggles .is-active */
+    font-size: 1.1rem;                /* bigger text */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .navbar-menu.is-active {
+    position: fixed;                  /* pin the menu */
+    top: 64px;                        /* same as navbar min-height */
+    left: 0;
+    right: 0;
+    height: 50vh;                     /* top half of the screen */
+    overflow-y: auto;                 /* scroll if it overflows */
+    padding: 0.75rem;                 /* comfy padding */
+    z-index: 40;
+    /* keep your theme; fallbacks if variables aren’t set */
+    background: var(--navbar-menu-bg, rgba(0 0 0 / 0.92));
+    backdrop-filter: saturate(120%) blur(2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  /* Make each item a thumb-friendly target */
+  .navbar-item,
+  .navbar-link {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    min-height: 48px;                 /* ≥48px per Apple/Google guidelines */
+    line-height: 1.25;
+  }
+
+  /* Dropdowns inside the mobile menu */
+  .navbar-dropdown .navbar-item {
+    padding-left: 1.25rem;            /* small indent */
+    min-height: 44px;
+  }
+
+  /* Make separators less fiddly */
+  .navbar-divider {
+    margin: .25rem 0;
+  }
+
+  /* Optional: ensure links fill the row so tapping anywhere works */
+  .navbar-item,
+  .navbar-dropdown .navbar-item {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Prevent background from “peeking” while scrolling the menu */
+  html.has-navbar-fixed-top,
+  body.has-navbar-fixed-top {
+    overflow-x: hidden;
+  }
+}
+
+/* ---------- Hango: Mobile burger size & placement ---------- */
+@media (max-width: 1023.98px) {
+
+  /* Make the top bar a hair taller so a bigger burger fits cleanly */
+  .navbar { min-height: 64px; }
+
+  /* Keep brand row tidy */
+  .navbar .navbar-brand { align-items: center; gap: .25rem; }
+
+  /* >> BIGGER BURGER, LOCKED TO THE RIGHT << */
+  .navbar .navbar-brand .navbar-burger {
+    margin-left: auto;        /* shove it to the right edge */
+    width: 56px;
+    height: 56px;
+  }
+  .navbar.is-primary .navbar-burger span {
+    /* thicker, slightly shorter bars so they don’t look goofy at 56px */
+    height: 3px;
+    left: 14px; right: 14px;
+  }
+
+  /* Keep the opened menu anchored under the taller bar (you already use Bulma's .is-active) */
+  .navbar-menu.is-active {
+    position: fixed;
+    top: 64px;                /* match .navbar min-height */
+    left: 0; right: 0;
+    height: 40vh;             /* top half of the screen */
+    overflow-y: auto;
+    /* background: var(--surface); */
+    /* border-top: 1px solid var(--border); */
+    z-index: 40;
+  }
+
+  /* Make taps comfy (keeps your current look, only increases hit area) */
+  .navbar-menu .navbar-item,
+  .navbar-menu .navbar-link {
+    min-height: 48px;
+    line-height: 1.25;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* ---------- Hango: Mobile drawer theming (works in light & dark) ---------- */
+@media (max-width: 1023.98px) {
+  /* Base layout keeps from earlier step */
+  .navbar { min-height: 64px; }
+  .navbar .navbar-brand { align-items: center; gap: .25rem; }
+  .navbar .navbar-brand .navbar-burger {
+    margin-left: auto;
+    width: 56px; height: 56px;
+  }
+  .navbar-burger span { height: 3px; left: 14px; right: 14px; }
+
+  /* Default/fallback (in case theme attr isn’t present) */
+  .navbar-menu.is-active {
+    position: fixed; top: 72px; left: 0; right: 0;
+    height: 40vh; overflow-y: auto; z-index: 40;
+    /* neutral fallback so it won't flip unexpectedly */
+    /* background: rgba(0,0,0,.88); */
+    border-top: 0;
+    backdrop-filter: saturate(120%) blur(2px);
+  }
+  .navbar-menu.is-active .navbar-item,
+  .navbar-menu.is-active .navbar-link {
+    min-height: 48px; line-height: 1.25; font-size: 1.1rem;
+    display: flex; align-items: center;
+    color: inherit;                 /* inherit from theme variant (below) */
+  }
+
+  /* ===== Theme-aware variants =====
+     Adjust these selectors to match your switch if needed:
+     - html[data-theme="dark"] / html[data-theme="light"]
+     - or body.theme-dark / body.theme-light
+  */
+
+  /* DARK */
+  html[data-theme="dark"] .navbar-menu.is-active,
+  body.theme-dark .navbar-menu.is-active {
+    background: rgba(8, 8, 8, .92);
+    color: #f5f5f5;
+    border-top: 1px solid rgba(255,255,255,.06);
+    box-shadow: none;               /* avoid pale band under the drawer */
+  }
+
+  /* LIGHT */
+  html[data-theme="light"] .navbar-menu.is-active,
+  body.theme-light .navbar-menu.is-active {
+    background: rgba(208 238 207 / 0.88);   /* light surface, not murky grey */
+    color: #111;
+    border-top: 1px solid rgba(0,0,0,.08);  /* subtle seam */
+    box-shadow: none;                       /* no glow band */
+  }
+
+  /* Ensure hover/focus remain visible in both themes */
+  .navbar-menu.is-active .navbar-item:focus,
+  .navbar-menu.is-active .navbar-item:hover,
+  .navbar-menu.is-active .navbar-link:focus,
+  .navbar-menu.is-active .navbar-link:hover {
+    background: rgba(127,127,127,.08);
+  }
+}
+
