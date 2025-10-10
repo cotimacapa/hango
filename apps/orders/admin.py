@@ -428,6 +428,15 @@ class OrderAdmin(admin.ModelAdmin):
             "admin/orders/relatorios_por_turma_report.html",
             ctx,
         )
+    
+        # PAGINATION
+    list_per_page = 25            # how many Pedidos per page
+    list_max_show_all = 2000      # cap for “Show all”
+    show_full_result_count = False  # skip COUNT(*) on large tables = faster pages
+
+    # Optional: quality of life
+    # actions_on_top = True
+    # actions_on_bottom = True
 
 
 @admin.register(OrderItem)
