@@ -26,6 +26,25 @@ from apps.orders.services import (
 )
 
 # ---------------------------------------------------------------------
+# Weekend placement gate
+# ---------------------------------------------------------------------
+
+def _orders_paused_today(user=None, now=None) -> bool:
+    """
+    Returns True if placing orders should be refused today.
+    Policy: block order *placement* on Saturday (5) and Sunday (6).
+    Staff bypass is allowed (set to block staff too if desired).
+    """
+    n = timezone.localtime(now or timezone.now())
+    wk = n.weekday()  # Monday=0 ... Sunday=6
+    if wk in (5, 6):
+        # Allow staff to bypass. Flip to `return True` if you want staff blocked too.
+        if user is not None and getattr(user, "is_staff", False):
+            return False
+        return True
+    return False
+
+# ---------------------------------------------------------------------
 # Session-cart helpers
 # ---------------------------------------------------------------------
 
@@ -235,6 +254,11 @@ def remove(request: HttpRequest, pk: int) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 @login_required
 def checkout(request: HttpRequest) -> HttpResponse:
+    # Weekend guard: refuse placing orders on Sat/Sun for students.
+    if _orders_paused_today(request.user):
+        messages.error(request, "Pedidos ficam suspensos aos sábados e domingos. Tente novamente na segunda-feira.")
+        return redirect("orders:cart")
+
     if request.method == "GET":
         cart = _get_session_cart(request)
         lines = _cart_lines(cart)

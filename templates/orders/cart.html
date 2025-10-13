@@ -6,6 +6,14 @@
   <h1 class="title">Seu Carrinho</h1>
   <p class="subtitle">Refeições são gratuitas; limites podem ser aplicados por categoria a cada dia.</p>
 
+  {# Weekend banner: Sunday=0, Saturday=6 in Django's "w" #}
+  {% now "w" as dow %}
+  {% if dow == "0" or dow == "6" %}
+    <div class="notification is-warning is-light" style="margin-top:.25rem;">
+      Atenção: Pedidos não podem ser realizados aos sábados e domingos! 
+    </div>
+  {% endif %}
+
   {% if lines %}
     {% if service_day %}
       <p class="pedido-dia">
@@ -48,7 +56,11 @@
       {% if already_ordered_for_day %}
         <button class="button is-primary" disabled>Pedir</button>
       {% else %}
-        <a class="button is-primary" href="{% url 'orders:checkout' %}">Pedir</a>
+        {% if dow == "0" or dow == "6" %}
+          <button class="button is-primary" disabled title="Pedidos suspensos no fim de semana">Pedir</button>
+        {% else %}
+          <a class="button is-primary" href="{% url 'orders:checkout' %}">Pedir</a>
+        {% endif %}
       {% endif %}
     </div>
   {% else %}
