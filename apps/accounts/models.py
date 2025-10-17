@@ -156,7 +156,19 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.blocked_reason = (reason or "")[:200]
         self.blocked_at = timezone.now()
         self.blocked_by = by if (by and getattr(by, "is_staff", False)) else None
-        self.save(update_fields=["is_blocked", "block_source", "blocked_reason", "blocked_at", "blocked_by"])
+
+        # 🚀 Save *all* possibly changed fields including streak info
+        self.save(
+            update_fields=[
+                "is_blocked",
+                "block_source",
+                "blocked_reason",
+                "blocked_at",
+                "blocked_by",
+                "no_show_streak",
+                "last_no_show_at",
+            ]
+        )
 
         # registrar evento
         BlockEvent = apps.get_model("accounts", "BlockEvent")
@@ -167,6 +179,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             by_user=self.blocked_by,
             reason=self.blocked_reason,
         )
+
 
     def unblock(self, *, by, reason: str = "") -> None:
         """
@@ -181,13 +194,19 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.blocked_reason = (reason or "")[:200]
         self.blocked_at = None
         self.blocked_by = by
-        # decisão: ao desbloquear manualmente, zera streak
         self.no_show_streak = 0
-        self.save(update_fields=[
-            "is_blocked", "block_source", "blocked_reason", "blocked_at", "blocked_by", "no_show_streak"
-        ])
 
-        # registrar evento
+        self.save(
+            update_fields=[
+                "is_blocked",
+                "block_source",
+                "blocked_reason",
+                "blocked_at",
+                "blocked_by",
+                "no_show_streak",
+            ]
+        )
+
         BlockEvent = apps.get_model("accounts", "BlockEvent")
         BlockEvent.objects.create(
             user=self,

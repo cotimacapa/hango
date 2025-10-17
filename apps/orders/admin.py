@@ -107,7 +107,35 @@ class OrderAdmin(admin.ModelAdmin):
         if count:
             messages.success(request, _(f"{count} pedido(s) marcados como não entregue (falta)."))
 
-    actions = ("action_mark_picked_up", "action_mark_no_show")
+    @admin.action(description="Marcar pedidos de HOJE não retirados como No-Show (automático)")
+    def action_mark_today_no_shows(self, request, queryset):
+        """
+        Marca automaticamente todos os pedidos de HOJE que ainda estão pendentes
+        como 'no_show'. Usa o mesmo helper mark_no_show() do modelo.
+        """
+        from django.db import transaction
+        from django.utils import timezone
+
+        today = timezone.localdate()
+        qs = queryset.filter(service_day=today).exclude(
+            status__in=("picked_up", "no_show") + Order.CANCELED_STATUSES
+        )
+
+        updated = 0
+        with transaction.atomic():
+            for order in qs.select_for_update(skip_locked=True):
+                order.mark_no_show(save_user=True)
+                updated += 1
+
+        if updated:
+            messages.success(
+                request,
+                _(f"{updated} pedido(s) de hoje marcados automaticamente como No-Show."),
+            )
+        else:
+            messages.info(request, _("Nenhum pedido pendente para marcar hoje."))
+
+    actions = ("action_mark_picked_up", "action_mark_no_show", "action_mark_today_no_shows")
 
     def has_view_permission(self, request, obj=None):
         return request.user.is_superuser or request.user.is_staff

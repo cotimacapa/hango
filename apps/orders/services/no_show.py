@@ -1,4 +1,3 @@
-# apps/orders/services/no_show.py
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,12 +5,11 @@ from typing import Optional
 
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from ..models import Order
 
-
 # Default threshold for auto-blocking on consecutive no-shows.
-# Override in settings.py with: HANGO_AUTO_BLOCK_THRESHOLD = 3
 AUTO_BLOCK_THRESHOLD_DEFAULT: int = getattr(settings, "HANGO_AUTO_BLOCK_THRESHOLD", 3)
 
 
@@ -29,8 +27,7 @@ class MarkResult:
 @transaction.atomic
 def mark_picked_up(order: Order, *, by=None) -> MarkResult:
     """
-    Mark as delivered/picked up, set delivered_at/by, and reset the user's no-show streak.
-    Delegates to Order.mark_picked_up to keep business rules centralized.
+    Marca o pedido como retirado e zera a sequência de faltas do usuário.
     """
     prev = order.status
     order = order.mark_picked_up(by=by)
@@ -49,19 +46,35 @@ def mark_picked_up(order: Order, *, by=None) -> MarkResult:
 @transaction.atomic
 def mark_no_show(order: Order, *, auto_block_threshold: Optional[int] = None) -> MarkResult:
     """
-    Mark as no-show/undelivered, increment the user's streak, and auto-block if threshold reached.
-    Delegates to Order.mark_no_show.
+    Marca o pedido como não comparecido, incrementa a sequência e bloqueia se atingir o limite.
+    Corrigido: salva o incremento ANTES de chamar block() para não perder a atualização.
     """
     threshold = AUTO_BLOCK_THRESHOLD_DEFAULT if auto_block_threshold is None else int(auto_block_threshold)
     prev = order.status
-    order = order.mark_no_show(auto_block_threshold=threshold)
+
+    # Atualiza o pedido
+    if order.status != "no_show":
+        order.status = "no_show"
+        order.delivery_status = "undelivered"
+        order.save(update_fields=["status", "delivery_status"])
+
     u = order.user
+    u.no_show_streak = (u.no_show_streak or 0) + 1
+    u.last_no_show_at = timezone.localdate()
+
+    # 1) Persist first, so increment is never lost
+    u.save(update_fields=["no_show_streak", "last_no_show_at"])
+
+    # 2) Then handle blocking
+    if (u.no_show_streak >= threshold) and not getattr(u, "is_blocked", False):
+        u.block(source="auto", by=None, reason=f"{threshold} faltas consecutivas")
+
     return MarkResult(
         order_id=order.pk,
         user_id=u.pk,
         prev_status=prev,
         new_status=order.status,
-        no_show_streak=getattr(u, "no_show_streak", 0) or 0,
+        no_show_streak=u.no_show_streak,
         blocked=bool(getattr(u, "is_blocked", False)),
         block_source=getattr(u, "block_source", None),
     )

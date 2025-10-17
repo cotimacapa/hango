@@ -1,12 +1,8 @@
-# apps/orders/models.py
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 import secrets
-
-# NEW: threshold for auto-block
-AUTO_BLOCK_THRESHOLD = 3  # 3 faltas consecutivas
 
 
 def _ean13_check_digit(d12: str) -> str:
@@ -27,6 +23,17 @@ def _generate_ean13() -> str:
     return d12 + _ean13_check_digit(d12)
 
 
+def get_auto_block_threshold() -> int:
+    """
+    ÚNICA fonte de verdade para o limite de auto-bloqueio.
+    Lê de settings.HANGO_AUTO_BLOCK_THRESHOLD, padrão = 3.
+    """
+    try:
+        return int(getattr(settings, "HANGO_AUTO_BLOCK_THRESHOLD", 3))
+    except Exception:
+        return 3
+
+
 class Order(models.Model):
     # Status geral do pedido (se você ainda usa essas fases)
     STATUS = [
@@ -35,7 +42,7 @@ class Order(models.Model):
         # ("preparing", "Preparando"),
         # ("ready", "Pronto"),
         ("picked_up", "Retirado"),
-        ("no_show", "Não compareceu"),  # NEW
+        ("no_show", "Não compareceu"),
         ("canceled", "Cancelado"),
     ]
 
@@ -43,10 +50,10 @@ class Order(models.Model):
     DELIVERY_STATUS = [
         ("pending", "Pendente"),
         ("delivered", "Entregue"),
-        ("undelivered", "Não Entregue"),  # adicionado para casar com o fluxo atual
+        ("undelivered", "Não Entregue"),  # casa com o fluxo atual
     ]
 
-    # NEW: estados que NÃO contam para a regra "1 pedido por dia"
+    # estados que NÃO contam para a regra "1 pedido por dia"
     CANCELED_STATUSES = ("canceled",)
 
     user = models.ForeignKey(
@@ -81,7 +88,7 @@ class Order(models.Model):
         related_name="delivered_orders",
     )
 
-    # NEW: token opaco (somente dígitos), pronto para EAN-13 (13 chars)
+    # token opaco (somente dígitos), pronto para EAN-13 (13 chars)
     pickup_token = models.CharField(
         "Token de retirada",
         max_length=13,
@@ -101,7 +108,7 @@ class Order(models.Model):
             ("can_manage_delivery", "Can mark delivered / no-show"),
             ("can_view_orders", "Can view daily orders list"),
         ]
-        # NEW: 1 pedido ativo por estudante por dia (o app libera em cancelamento)
+        # 1 pedido ativo por estudante por dia (o app libera em cancelamento)
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "service_day"],
@@ -113,7 +120,7 @@ class Order(models.Model):
         return f"Pedido {self.pk} de {self.user}"
 
     # ──────────────────────────────────────────────────────────────────────
-    # NEW: token lifecycle
+    # token lifecycle
     # ──────────────────────────────────────────────────────────────────────
     def ensure_pickup_token(self, *, force: bool = False) -> str:
         """
@@ -155,32 +162,48 @@ class Order(models.Model):
         # reset da sequência de faltas
         if save_user:
             u = self.user
-            if u.no_show_streak != 0 or not u.last_pickup_at:
+            if u.no_show_streak != 0 or not getattr(u, "last_pickup_at", None):
                 u.no_show_streak = 0
                 u.last_pickup_at = timezone.localdate()
                 u.save(update_fields=["no_show_streak", "last_pickup_at"])
         return self
 
-    def mark_no_show(self, *, auto_block_threshold: int = AUTO_BLOCK_THRESHOLD, save_user=True):
+    def mark_no_show(self, *, auto_block_threshold: int | None = None, save_user=True):
         """
         Marca como 'não compareceu', incrementa streak e faz auto-bloqueio ao atingir o limite.
+        Importante: grava o incremento ANTES de chamar u.block() para não perder a atualização.
         """
         if self.status == "no_show":
             return self
+
+        # Atualiza o pedido
         self.status = "no_show"
         self.delivery_status = "undelivered"
         self.save(update_fields=["status", "delivery_status"])
 
-        if save_user:
-            u = self.user
-            u.no_show_streak = (u.no_show_streak or 0) + 1
-            u.last_no_show_at = timezone.localdate()
+        if not save_user:
+            return self
 
-            if (u.no_show_streak >= auto_block_threshold) and not u.is_blocked:
-                # chama o helper do modelo User (registra BlockEvent)
-                u.block(source="auto", by=None, reason=f"{auto_block_threshold} faltas consecutivas")
-            else:
-                u.save(update_fields=["no_show_streak", "last_no_show_at"])
+        # Atualiza o usuário
+        u = self.user
+        u.no_show_streak = (u.no_show_streak or 0) + 1
+        u.last_no_show_at = timezone.localdate()
+
+        # 1) Persistir primeiro para não perder o incremento caso block() faça seu próprio save()
+        u.save(update_fields=["no_show_streak", "last_no_show_at"])
+
+        # 2) Depois decidir bloqueio
+        if auto_block_threshold is None:
+            # Use sua função utilitária existente se já tiver; caso não tenha, mantenha fallback = 3
+            try:
+                auto_block_threshold = get_auto_block_threshold()
+            except NameError:
+                auto_block_threshold = 3
+
+        if (u.no_show_streak >= auto_block_threshold) and not getattr(u, "is_blocked", False):
+            # block() pode fazer seu próprio save(); nosso incremento já está garantido no banco
+            u.block(source="auto", by=None, reason=f"{auto_block_threshold} faltas consecutivas")
+
         return self
 
 
@@ -208,7 +231,7 @@ class OrderItem(models.Model):
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# NEW: Proxy model para criar a seção dedicada "Relatórios" no Admin
+# Proxy model para criar a seção dedicada "Relatórios" no Admin
 # ──────────────────────────────────────────────────────────────────────────
 class OrderReports(Order):
     class Meta:

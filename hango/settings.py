@@ -1,4 +1,3 @@
-# hango/settings.py
 from pathlib import Path
 import os
 
@@ -136,7 +135,7 @@ DEFAULT_LUNCH_DAYS_MASK = 0b11111
 # ── Django defaults ───────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ── Message tags overrides ───────────────────────────────────────────────────────────
+# ── Message tags overrides ────────────────────────────────────────────────────
 MESSAGE_TAGS = {
     messages.DEBUG: 'dark',
     messages.INFO: 'info',
@@ -147,3 +146,7 @@ MESSAGE_TAGS = {
 
 # ── Custom settings ───────────────────────────────────────────────────────────
 HANGO_BULK_IMPORT_COMMAND = "seed_students"
+
+# Unified auto-block threshold for no-shows
+# You can override via environment: HANGO_AUTO_BLOCK_THRESHOLD=3
+HANGO_AUTO_BLOCK_THRESHOLD = int(os.getenv("HANGO_AUTO_BLOCK_THRESHOLD", "3"))

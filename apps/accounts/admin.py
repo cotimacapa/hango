@@ -245,6 +245,88 @@ def _pick_command_names():
     return c
 
 
+# --- Safe block/unblock actions ------------------------------------------
+
+@admin.action(description="Desbloquear selecionados (zera faltas)")
+def action_unblock_users(modeladmin, request, queryset):
+    """
+    Calls User.unblock(by=..., reason=...) if available; otherwise falls back to
+    direct field updates and resets no_show_streak to 0.
+    """
+    from django.utils import timezone
+    count = 0
+    for u in queryset:
+        try:
+            if hasattr(u, "unblock") and callable(u.unblock):
+                u.unblock(by=request.user, reason="Admin: ação de desbloqueio")
+            else:
+                updated = []
+                if hasattr(u, "is_blocked"):
+                    u.is_blocked = False
+                    updated.append("is_blocked")
+                if hasattr(u, "blocked_reason"):
+                    u.blocked_reason = ""
+                    updated.append("blocked_reason")
+                if hasattr(u, "block_source"):
+                    u.block_source = ""
+                    updated.append("block_source")
+                if hasattr(u, "blocked_at"):
+                    u.blocked_at = None
+                    updated.append("blocked_at")
+                if hasattr(u, "blocked_by"):
+                    u.blocked_by = None
+                    updated.append("blocked_by")
+                if hasattr(u, "no_show_streak"):
+                    u.no_show_streak = 0
+                    updated.append("no_show_streak")
+                if hasattr(u, "last_no_show_at"):
+                    # keep historical stamp, do not change
+                    pass
+                u.save(update_fields=updated or None)
+            count += 1
+        except Exception as e:
+            messages.error(request, f"Falha ao desbloquear {u}: {e}")
+    if count:
+        messages.success(request, f"{count} usuário(s) desbloqueado(s) e faltas zeradas.")
+
+
+@admin.action(description="Bloquear selecionados (manual)")
+def action_block_users(modeladmin, request, queryset):
+    """
+    Calls User.block(source='manual', by=request.user, reason=...) if available;
+    otherwise falls back to setting the raw fields.
+    """
+    from django.utils import timezone
+    count = 0
+    for u in queryset:
+        try:
+            if hasattr(u, "block") and callable(u.block):
+                u.block(source="manual", by=request.user, reason="Admin: ação de bloqueio")
+            else:
+                updated = []
+                if hasattr(u, "is_blocked"):
+                    u.is_blocked = True
+                    updated.append("is_blocked")
+                if hasattr(u, "block_source"):
+                    u.block_source = "manual"
+                    updated.append("block_source")
+                if hasattr(u, "blocked_reason"):
+                    u.blocked_reason = "Admin: ação de bloqueio"
+                    updated.append("blocked_reason")
+                if hasattr(u, "blocked_at"):
+                    u.blocked_at = timezone.now()
+                    updated.append("blocked_at")
+                if hasattr(u, "blocked_by"):
+                    u.blocked_by = request.user
+                    updated.append("blocked_by")
+                u.save(update_fields=updated or None)
+            count += 1
+        except Exception as e:
+            messages.error(request, f"Falha ao bloquear {u}: {e}")
+    if count:
+        messages.success(request, f"{count} usuário(s) bloqueado(s).")
+
+
 # --- User Admin -----------------------------------------------------------
 
 @admin.register(User)
@@ -252,6 +334,7 @@ class UserAdmin(BaseUserAdmin):
     add_form = UserAdminAddForm
     form = UserAdminForm
     model = User
+    actions = (action_unblock_users, action_block_users)
 
     class Media:
         css = {"all": ("admin/css/override.css",)}  # keep error lists visible
@@ -379,8 +462,16 @@ class UserAdmin(BaseUserAdmin):
         return []
 
     def get_readonly_fields(self, request, obj=None):
+        """
+        Make raw block fields read-only so staff must use the safe actions,
+        ensuring streaks and events stay consistent.
+        """
         ro = set(super().get_readonly_fields(request, obj) or ())
-        ro.update({"block_source", "blocked_at", "blocked_by", "no_show_streak", "last_no_show_at", "last_pickup_at"})
+        ro.update({
+            "is_blocked", "blocked_reason", "block_source",
+            "blocked_at", "blocked_by",
+            "no_show_streak", "last_no_show_at", "last_pickup_at",
+        })
         if not request.user.is_superuser:
             ro.update({"is_superuser"})
             # When staff views an Admin, the Papel field is a computed label
@@ -573,7 +664,6 @@ class UserAdmin(BaseUserAdmin):
         resp = HttpResponse(content, content_type="text/csv; charset=utf-8")
         resp["Content-Disposition"] = 'attachment; filename="hango_user_import_template.csv"'
         return resp
-
 
 # --- Groups: visible to Equipe, editable only by Admin -------------------
 
