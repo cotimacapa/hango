@@ -531,18 +531,45 @@ def _turma_usuario(u):
 @permission_required("orders.can_view_orders", raise_exception=True)
 @require_http_methods(["GET"])
 def orders_list(request: HttpRequest) -> HttpResponse:
+    from django.db.models import OuterRef, Subquery
+    from apps.classes.models import StudentClass
+
     # support ?day=YYYY-MM-DD (alias ?data= too)
     day_param = request.GET.get("day") or request.GET.get("data")
     day = _parse_day_param(day_param) or timezone.localdate()
+    sort = request.GET.get("sort", "name")
+
+    # Subquery to get the user's first class name for stable sorting
+    first_class_qs = (
+        StudentClass.objects
+        .filter(members=OuterRef("user"))
+        .order_by("name")
+        .values("name")[:1]
+    )
 
     orders = (
         Order.objects.filter(service_day=day)
         .exclude(status__in=getattr(Order, "CANCELED_STATUSES", ("canceled",)))
         .select_related("user")
-        .prefetch_related("lines__item")
-        .order_by("user__first_name", "user__last_name")
+        .prefetch_related("lines__item", "user__student_classes")
+        .annotate(first_class_name=Subquery(first_class_qs))
     )
-    return render(request, "orders/orders_list.html", {"orders": orders, "day": day})
+
+    if sort == "class":
+        orders = orders.order_by("first_class_name", "user__first_name", "user__last_name")
+    elif sort == "-class":
+        orders = orders.order_by("-first_class_name", "user__first_name", "user__last_name")
+    elif sort == "-name":
+        orders = orders.order_by("-user__first_name", "-user__last_name")
+    else:
+        orders = orders.order_by("user__first_name", "user__last_name")
+
+    return render(request, "orders/orders_list.html", {
+        "orders": orders,
+        "day": day,
+        "sort": sort,
+    })
+
 
 
 # ---------------------------------------------------------------------
