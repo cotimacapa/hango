@@ -16,6 +16,7 @@ from django.core.exceptions import ValidationError
 
 from apps.menu.models import Item
 from .models import Order, OrderItem
+from django.db.models import Q
 
 # Order services (status helpers + scheduling & daily limit)
 from apps.orders.services import (
@@ -353,18 +354,48 @@ def success(request: HttpRequest, order_id: int) -> HttpResponse:
 
 @login_required
 @permission_required("orders.can_view_kitchen", raise_exception=True)
-@require_http_methods(["GET"])
 def kitchen_board(request: HttpRequest) -> HttpResponse:
-    """View de supervisão: lista do dia, clique para marcar entregue/não entregue."""
     today = timezone.localdate()
+    nome_filtro = request.GET.get("nome", "").strip()
+    turma_filtro = request.GET.get("turma", "").strip()
+    sort_param = request.GET.get("sort", "nome")
+
     orders = (
         Order.objects.filter(service_day=today, delivery_status="pending")
         .select_related("user")
-        .prefetch_related("lines__item")
-        .order_by("created_at")
+        .prefetch_related("user__student_classes", "lines__item")
     )
-    return render(request, "orders/kitchen.html", {"orders": orders, "today": today})
 
+    if nome_filtro:
+        orders = orders.filter(
+            Q(user__first_name__icontains=nome_filtro) |
+            Q(user__last_name__icontains=nome_filtro)
+        )
+
+    if turma_filtro:
+        orders = orders.filter(user__student_classes__name__icontains=turma_filtro)
+
+    # Apply sorting
+    if sort_param == "turma":
+        orders = orders.order_by("user__student_classes__name", "user__first_name")
+    elif sort_param == "-turma":
+        orders = orders.order_by("-user__student_classes__name", "user__first_name")
+    elif sort_param == "-nome":
+        orders = orders.order_by("-user__first_name")
+    else:
+        orders = orders.order_by("user__first_name")
+
+    return render(
+        request,
+        "orders/kitchen.html",
+        {
+            "orders": orders,
+            "today": today,
+            "nome_filtro": nome_filtro,
+            "turma_filtro": turma_filtro,
+            "sort_param": sort_param,
+        },
+    )
 
 @require_http_methods(["POST"])
 @login_required

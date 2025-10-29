@@ -9,11 +9,25 @@
 <h1 class="title">Cozinha</h1>
 <p class="subtitle">Pedidos pendentes de hoje.</p>
 
-  <div class="field is-grouped mb-4" style="gap:.75rem; flex-wrap:wrap;">
-    <p class="control">
-      <a class="button is-link" href="{% url 'orders:scan' %}">🔎 Leitura de código</a>
-    </p>
+<div class="field is-grouped mb-4" style="gap:.75rem; flex-wrap:wrap;">
+  <p class="control">
+    <a class="button is-link" href="{% url 'orders:scan' %}">🔎 Leitura de código</a>
+  </p>
+</div>
+
+<!-- <form method="get" class="field is-grouped is-flex-wrap-wrap mb-4" style="gap:.75rem;">
+  <div class="control">
+    <input class="input" type="text" name="nome" placeholder="Filtrar por nome"
+           value="{{ nome_filtro }}">
   </div>
+  <div class="control">
+    <input class="input" type="text" name="turma" placeholder="Filtrar por turma"
+           value="{{ turma_filtro }}">
+  </div>
+  <div class="control">
+    <button class="button is-link" type="submit">Filtrar</button>
+  </div>
+</form> -->
 
 <div class="box">
   {% if orders %}
@@ -23,7 +37,16 @@
           <tr>
             <th>ID</th>
             <th>Quando</th>
-            <th>Aluno</th>
+            <th>
+              <a href="?{% if nome_filtro %}nome={{ nome_filtro }}&{% endif %}{% if turma_filtro %}turma={{ turma_filtro }}&{% endif %}sort={% if sort_param == 'nome' %}-nome{% else %}nome{% endif %}">
+                Aluno {% if sort_param == "nome" %}▲{% elif sort_param == "-nome" %}▼{% endif %}
+              </a>
+            </th>
+            <th>
+              <a href="?{% if nome_filtro %}nome={{ nome_filtro }}&{% endif %}{% if turma_filtro %}turma={{ turma_filtro }}&{% endif %}sort={% if sort_param == 'turma' %}-turma{% else %}turma{% endif %}">
+                Turma {% if sort_param == "turma" %}▲{% elif sort_param == "-turma" %}▼{% endif %}
+              </a>
+            </th>
             <th>Itens</th>
             <th class="has-text-right">Ações</th>
           </tr>
@@ -34,6 +57,7 @@
               <td>#{{ o.id }}</td>
               <td title="{{ o.created_at }}">{{ o.created_at|timesince }} atrás</td>
               <td>{{ o.user.get_full_name|default:o.user.username }}</td>
+              <td>{{ o.user.student_classes.first.name|default:"—" }}</td>
               <td>
                 {% for li in o.lines.all %}
                   <span class="tag is-light mb-1">{{ li.qty }}× {{ li.item.name }}</span>
