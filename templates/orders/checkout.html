@@ -5,19 +5,29 @@
 {% block content %}
   <h1 class="title">Finalizar Pedido</h1>
 
-  {# Weekend banner: Sunday=0, Saturday=6 #}
-  {% now "w" as dow %}
-  {% if dow == "0" or dow == "6" %}
-    <div class="notification is-warning is-light" style="margin-top:.25rem;">
-      Atenção: Pedidos não podem ser realizados aos sábados e domingos! 
+  {# Bright, forward-looking countdown banner #}
+  {% if remaining_hours is not None and remaining_minutes is not None %}
+    <div class="notification has-text-weight-bold hango-cutoff-banner">
+      🟠 Pedido para {{ service_day|date:"j \\d\\e F" }} —
+      Você ainda tem {{ remaining_hours }}h {{ remaining_minutes }}min para pedir para esse dia!
     </div>
   {% endif %}
+    <div class="notification is-warning is-light" style="margin-top:.25rem;">
+      ⚠️ Mas lembre-se: Pedidos <strong>não podem</strong> ser realizados aos sábados e domingos. 
+      Pedidos para o próximo dia de almoço devem ser feitos até <strong>{{ cutoff_time|time:"H:i" }}</strong> do último dia útil. 
+    </div>
 
-  {% if service_day %}
+
+  <!-- {# Weekend banner: Sunday=0, Saturday=6 #}
+  {% now "w" as dow %}
+  {% if dow == "0" or dow == "6" %}
+  {% endif %} -->
+
+  <!-- {% if service_day %}
     <p class="pedido-dia">
       Pedido para dia <strong class="pedido-dia__date">{{ service_day|date:"j \\d\\e F" }}</strong>
     </p>
-  {% endif %}
+  {% endif %} -->
 
   {% if lines %}
     {% if already_ordered_for_day %}

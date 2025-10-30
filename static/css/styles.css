@@ -569,5 +569,9 @@ html[data-theme="dark"] .button.is-light:hover {
   text-transform: none;
 }
 
-
+.notification.hango-cutoff-banner {
+  color: #ffb000 !important;
+  border: 1px solid #ffb000 !important;
+  background-color: rgba(255,176,0,.08) !important;
+}
 

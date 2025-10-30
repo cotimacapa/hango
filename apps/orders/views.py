@@ -18,6 +18,9 @@ from apps.menu.models import Item
 from .models import Order, OrderItem
 from django.db.models import Q
 
+from datetime import datetime, timedelta
+from apps.calendar.models import OrderCutoffSetting
+
 # Order services (status helpers + scheduling & daily limit)
 from apps.orders.services import (
     mark_no_show,
@@ -264,13 +267,50 @@ def checkout(request: HttpRequest) -> HttpResponse:
         cart = _get_session_cart(request)
         lines = _cart_lines(cart)
         total_qty, total_price = _cart_totals(lines)
+
+        # 1) Start with the currently eligible service day.
         service_day = next_eligible_service_day(request.user)
+
+        # 2) Determine cutoff time (defaults to 15:00 if unset).
+        cutoff_obj = OrderCutoffSetting.objects.first()
+        cutoff_time = getattr(
+            cutoff_obj,
+            "cutoff_time",
+            datetime.strptime("15:00", "%H:%M").time(),
+        )
+
+        # 3) Compute the deadline (cutoff on the day BEFORE the service_day).
+        def _deadline_for(svc_day):
+            naive = datetime.combine(svc_day - timedelta(days=1), cutoff_time)
+            return timezone.make_aware(naive)
+
+        now = timezone.localtime()
+        deadline = _deadline_for(service_day)
+
+        # 4) If cutoff already passed, roll to the next eligible service day
+        #    and recompute the deadline. (Keeps the UI always forward-looking.)
+        if now >= deadline:
+            # Advance the search window by one day to find the next eligible service day
+            next_start = service_day + timedelta(days=1)
+            # Your scheduling helper already exists in this project; we reuse it.
+            service_day = next_eligible_service_day(request.user, start_from=next_start)
+            deadline = _deadline_for(service_day)
+
+        # 5) Remaining time
+        remaining = max(deadline - now, timedelta(0))
+        remaining_secs = int(remaining.total_seconds())
+        remaining_hours, rem = divmod(remaining_secs, 3600)
+        remaining_minutes = rem // 60
 
         context = {
             "lines": lines,
             "total_qty": total_qty,
             "total_price": total_price,
             "service_day": service_day,
+            # ⬇️ new context
+            "cutoff_time": cutoff_time,
+            "remaining_hours": remaining_hours,
+            "remaining_minutes": remaining_minutes,
         }
         return render(request, "orders/checkout.html", context)
 
