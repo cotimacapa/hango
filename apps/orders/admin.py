@@ -47,6 +47,9 @@ class OrderAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
     list_select_related = ("user", "delivered_by")
 
+    # ✨ NEW: fast lookup for 600+ users
+    autocomplete_fields = ("user",)
+
     list_display = (
         "id",
         "user",
