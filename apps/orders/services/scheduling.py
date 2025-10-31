@@ -4,6 +4,7 @@ from datetime import timedelta, date
 
 from django.conf import settings
 from django.utils import timezone
+from apps.classes.models import ExtraLunchDay
 
 from datetime import time as dtime
 # “Dias sem atendimento” live in the calendar app
@@ -258,8 +259,24 @@ def _user_lunch_mask(user) -> int:
 # ---------------------------------------------------------------------
 
 def is_lunch_day_for_user(user, dia: date) -> bool:
-    return bool(_user_lunch_mask(user) & _weekday_bit(dia))
+    """
+    Returns True if the user can order lunch for the given date.
+    Includes both regular lunch days (mask) and temporary extra days.
+    """
+    try:
+        # If this date is explicitly marked as an extra lunch day
+        # for any of the user's classes, it's valid.
+        if ExtraLunchDay.objects.filter(
+            student_class__in=user.student_classes.all(),
+            date=dia
+        ).exists():
+            return True
+    except Exception:
+        # Fallback if user has no student_classes relation
+        pass
 
+    # Default behavior: regular weekday mask check
+    return bool(_user_lunch_mask(user) & _weekday_bit(dia))
 
 def is_closed(dia: date) -> bool:
     if DiaSemAtendimento is None:

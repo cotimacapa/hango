@@ -1,9 +1,11 @@
 # apps/classes/models.py
 from django.db import models, transaction
 from django.conf import settings
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.db.models.functions import Lower  # NEW: for case-insensitive unique constraint
+from django.utils.html import format_html
 
 # ⬇️ Domain rule import: Mon–Fri default and pretty-printer
 from hango.core.weekdays import MON_FRI_MASK, human_days as human_days_str
@@ -154,3 +156,41 @@ class StudentClass(models.Model):
             self.save(update_fields=["successor"])  # next_year saved via reverse relation
 
         return next_class
+
+class ExtraLunchDay(models.Model):
+    student_class = models.ForeignKey(
+        "StudentClass",
+        on_delete=models.CASCADE,
+        related_name="extra_lunch_days",
+        verbose_name="Turma",
+    )
+    date = models.DateField("Data extra")
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name="Criado por",
+    )
+
+    class Meta:
+        verbose_name = "Dia extra de almoço"
+        verbose_name_plural = "Dias extras de almoço"
+        ordering = ["date"]
+        permissions = [
+            ("can_manage_extra_days", "Pode gerenciar dias extras de almoço"),
+        ]
+        unique_together = ("student_class", "date")
+
+    def is_active(self):
+        """Returns whether this extra lunch day is still active (future or today)."""
+        if not self.date:
+            return False
+        return self.date >= timezone.localdate()
+
+    is_active.short_description = "Ativo?"
+    is_active.boolean = True    
+    
+    def __str__(self):
+        return f"{self.student_class} — {self.date:%d/%m/%Y}"

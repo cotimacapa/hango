@@ -18,6 +18,8 @@ from django.utils.html import format_html
 from .models import StudentClass
 from hango.admin.widgets import WeekdayMaskField  # bitmask widget for weekdays
 
+from .models import ExtraLunchDay
+
 User = get_user_model()
 
 
@@ -132,6 +134,26 @@ class StudentClassAdminForm(forms.ModelForm):
 
 
 # ------------------------ ModelAdmin ------------------------
+
+class ExtraLunchDayInline(admin.TabularInline):
+    model = ExtraLunchDay
+    extra = 0
+    can_delete = True    
+    fields = ("date", "is_active", "created_by")
+    readonly_fields = ("is_active", "created_by")
+    verbose_name = "Dia extra"
+    verbose_name_plural = "Dias extras (EM TESTE)"
+    ordering = ("date",)
+
+    def has_add_permission(self, request, obj=None):
+        return request.user.has_perm("classes.can_manage_extra_days")
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.has_perm("classes.can_manage_extra_days")
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.has_perm("classes.can_manage_extra_days")
+
 
 @admin.register(StudentClass)
 class StudentClassAdmin(admin.ModelAdmin):
@@ -493,3 +515,35 @@ class StudentClassAdmin(admin.ModelAdmin):
             messages.info(request, f"Turma sucessora já existia; vínculo atualizado: {successor}.")
 
         return redirect(reverse("admin:classes_studentclass_change", args=[successor.pk]))
+    
+    def save_formset(self, request, form, formset, change):
+        # Commit=False ensures we can set created_by and handle deletions manually
+        instances = formset.save(commit=False)
+
+        for obj in instances:
+            if isinstance(obj, ExtraLunchDay):
+                if not obj.created_by:
+                    obj.created_by = request.user
+            obj.save()
+
+        # Handle deletions: Django won’t call delete() unless we do this manually
+        for obj in formset.deleted_objects:
+            obj.delete()
+
+        formset.save_m2m()
+
+    def response_change(self, request, obj):
+        """
+        Keep user on the same StudentClass change page when clicking 'Salvar'.
+        Other buttons keep their default behavior.
+        """
+        # If the user clicked the standard "Salvar" button, stay on this page.
+        if "_save" in request.POST and "_continue" not in request.POST and "_addanother" not in request.POST:
+            messages.success(request, "Alterações salvas.")
+            return redirect(reverse("admin:classes_studentclass_change", args=[obj.pk]))
+
+        # Defer to the default behavior for 'Salvar e continuar editando', etc.
+        return super().response_change(request, obj)
+
+    inlines = [ExtraLunchDayInline]
+
